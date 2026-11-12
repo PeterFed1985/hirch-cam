@@ -1,0 +1,89 @@
+{
+ "3d_schruppen_bw_schlichten": {
+  "eilgang_durch_material": 0,
+  "eintauchen": 59,
+  "fraesweg": 10806.0,
+  "leerweg": 1754.0,
+  "rest_ueber_05_prozent": 6.22,
+  "senkrecht_mm": 62.166,
+  "verletzt_mm": 0.012,
+  "zeit_min": 2.85
+ },
+ "bohren": {
+  "eintauchen": 20,
+  "fraesweg": 53.0,
+  "leerweg": 422.0,
+  "tiefste": -9.502,
+  "zeit_min": 0.41
+ },
+ "bohren_helix": {
+  "eintauchen": 7,
+  "fraesweg": 452.0,
+  "leerweg": 229.0,
+  "tiefste": -8.0,
+  "zeit_min": 0.59
+ },
+ "gewinde": {
+  "eintauchen": 2,
+  "fraesweg": 313.0,
+  "leerweg": 129.0,
+  "tiefste": -10.0,
+  "zeit_min": 0.64
+ },
+ "gravur": {
+  "eintauchen": 4,
+  "fraesweg": 89.0,
+  "leerweg": 123.0,
+  "tiefste": -0.5,
+  "zeit_min": 0.14
+ },
+ "kontur_bogen": {
+  "eintauchen": 6,
+  "fraesweg": 1182.0,
+  "leerweg": 271.0,
+  "tiefste": -6.0,
+  "zeit_min": 1.08
+ },
+ "kontur_stege": {
+  "eintauchen": 18,
+  "fraesweg": 2008.0,
+  "leerweg": 254.0,
+  "tiefste": -10.0,
+  "zeit_min": 1.81
+ },
+ "planen": {
+  "eintauchen": 1,
+  "fraesweg": 1278.0,
+  "leerweg": 88.0,
+  "tiefste": -0.5,
+  "zeit_min": 1.1
+ },
+ "tasche_adaptiv": {
+  "eintauchen": 32,
+  "fraesweg": 3379.0,
+  "leerweg": 123.0,
+  "tiefste": -12.0,
+  "zeit_min": 2.21
+ },
+ "tasche_runden": {
+  "eintauchen": 4,
+  "fraesweg": 2321.0,
+  "leerweg": 249.0,
+  "tiefste": -6.0,
+  "zeit_min": 2.02
+ },
+ "tasche_teilstuecke": {
+  "eintauchen": 2,
+  "fraesweg": 2101.0,
+  "leerweg": 197.0,
+  "tiefste": -4.0,
+  "zeit_min": 1.82
+ },
+ "vcarve": {
+  "eintauchen": 11,
+  "fraesweg": 680.0,
+  "leerweg": 214.0,
+  "tiefste": -5.0,
+  "zeit_min": 0.87
+ }
+}

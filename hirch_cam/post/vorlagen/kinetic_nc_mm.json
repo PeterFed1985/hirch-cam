@@ -1,0 +1,31 @@
+{
+  "name": "KinetiC-NC (mm, .nc)",
+  "beschreibung": "KinetiC-NC (CNC-Step, gleiche Familie wie Beamicon2). Eine Datei je Werkzeug: der Werkzeugwechsel mit M6 braucht in KinetiC-NC ein eingerichtetes Makro – darum zwischen den Dateien von Hand wechseln und Z neu antasten. Bögen G2/G3 mit I/J relativ (Vorgabe der Steuerung), Bohrungen als einzelne Bewegungen (die Bohrzyklen laufen dort über Makros). Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": false,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "kopf": [
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G17",
+    "(T{t}: {werkzeug})"
+  ],
+  "werkzeug": [
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

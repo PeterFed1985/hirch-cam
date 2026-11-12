@@ -1,0 +1,37 @@
+{
+  "name": "Grbl / grblHAL / FluidNC (mm, .nc)",
+  "beschreibung": "Grbl 1.1, grblHAL und FluidNC (Arduino-, Teensy- und ESP32-Steuerungen, gefahren mit Candle, UGS, bCNC, gSender u. a.). Grbl kennt weder Bohrzyklen noch M6 (grblHAL und FluidNC nur mit eingerichtetem Wechsler): Bohrungen stehen als einzelne Bewegungen in der Datei, beim Werkzeugwechsel fährt die Maschine an die Wechselstelle und hält mit M0 an – Werkzeug wechseln, Z neu antasten, dann weiterlaufen lassen (Cycle Start).",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": true,
+  "wechselposition": true,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "kopf": [
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G94 G17"
+  ],
+  "werkzeug": [
+    "(T{t}: {werkzeug})",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{wz}",
+    "G0 X{wx} Y{wy}",
+    "(Werkzeug T{t} einsetzen, Z neu antasten)",
+    "M0"
+  ],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

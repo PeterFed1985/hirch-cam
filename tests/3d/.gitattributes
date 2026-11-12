@@ -1,0 +1,4 @@
+# 3D-Testdateien unverändert lassen
+*.stl binary
+*.step -text
+*.stp -text

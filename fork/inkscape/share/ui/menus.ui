@@ -1,0 +1,718 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk+" version="3.22"/>
+  <menu id="menus">
+    <submenu id="file-menu">
+      <attribute name="label" translatable="yes">_File</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_New</attribute>
+          <attribute name="action">win.document-new</attribute>
+          <attribute name="icon">document-new</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Open...</attribute>
+          <attribute name="action">win.document-open</attribute>
+          <attribute name="icon">document-open</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">New from _Template …</attribute>
+          <attribute name="action">win.hirch-aus-vorlage</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Open _Earlier Version …</attribute>
+          <attribute name="action">win.hirch-fassungen</attribute>
+        </item>
+      </section>
+      <submenu id="recent-files">
+        <attribute name="label" translatable="yes">Open _Recent</attribute>
+      </submenu>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Save</attribute>
+          <attribute name="action">win.document-save</attribute>
+          <attribute name="icon">document-save</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Save _As...</attribute>
+          <attribute name="action">win.document-save-as</attribute>
+          <attribute name="icon">document-save-as</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Save a Cop_y...</attribute>
+          <attribute name="action">win.document-save-copy</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Save as Te_mplate …</attribute>
+          <attribute name="action">win.hirch-als-vorlage</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Save _Mirrored As …</attribute>
+          <attribute name="action">win.hirch-gespiegelt-speichern</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Re_vert</attribute>
+          <attribute name="action">win.document-revert</attribute>
+          <attribute name="icon">document-revert</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Import...</attribute>
+          <attribute name="action">win.document-import</attribute>
+          <attribute name="icon">document-import</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Close</attribute>
+          <attribute name="action">win.document-close</attribute>
+          <attribute name="icon">window-close</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Quit</attribute>
+          <attribute name="action">app.quit</attribute>
+          <attribute name="icon">application-exit</attribute>
+          <attribute name="hidden-when">macos-menubar</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu id="edit-menu">
+      <attribute name="label" translatable="yes">_Edit</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Undo</attribute>
+          <attribute name="action">doc.undo</attribute>
+          <attribute name="icon">edit-undo</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Redo</attribute>
+          <attribute name="action">doc.redo</attribute>
+          <attribute name="icon">edit-redo</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Undo _History...</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">UndoHistory</attribute>
+          <attribute name="icon">edit-undo-history</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Cu_t</attribute>
+          <attribute name="action">app.cut</attribute>
+          <attribute name="icon">edit-cut</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Copy</attribute>
+          <attribute name="action">app.copy</attribute>
+          <attribute name="icon">edit-copy</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Paste</attribute>
+          <attribute name="action">win.paste-in-place</attribute>
+          <attribute name="icon">edit-paste</attribute>
+        </item>
+      </section>
+        <item>
+          <attribute name="label" translatable="yes">Paste at _Mouse Position</attribute>
+          <attribute name="action">win.paste</attribute>
+          <attribute name="icon">edit-paste</attribute>
+        </item>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Find/Replace...</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">Find</attribute>
+          <attribute name="icon">edit-find</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Duplic_ate</attribute>
+          <attribute name="action">app.duplicate</attribute>
+          <attribute name="icon">edit-duplicate</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Delete</attribute>
+          <attribute name="action">app.delete</attribute>
+          <attribute name="icon">edit-delete</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Select Al_l</attribute>
+          <attribute name="action">win.select-all</attribute>
+          <attribute name="icon">edit-select-all</attribute>
+        </item>
+      <item>
+        <attribute name="label" translatable="yes">Select Same _Stroke Color</attribute>
+        <attribute name="action">win.select-same-stroke-color</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Select Same Object _Type</attribute>
+        <attribute name="action">win.select-same-object-type</attribute>
+      </item>
+        <item>
+          <attribute name="label" translatable="yes">In_vert Selection</attribute>
+          <attribute name="action">win.select-invert</attribute>
+          <attribute name="icon">edit-select-invert</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">D_eselect</attribute>
+          <attribute name="action">win.select-none</attribute>
+          <attribute name="icon">edit-select-none</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Advanced Settings …</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">Preferences</attribute>
+          <attribute name="icon">preferences-system</attribute>
+          <attribute name="use-icon">True</attribute>
+          <attribute name="hidden-when">macos-menubar</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu id="view-menu">
+      <attribute name="label" translatable="yes">_View</attribute>
+      <submenu id="zoom-menu">
+        <attribute name="label" translatable="yes">_Zoom</attribute>
+        <section>
+          <item>
+            <attribute name="label" translatable="yes">Zoom in</attribute>
+            <attribute name="action">win.canvas-zoom-in</attribute>
+            <attribute name="icon">zoom-in</attribute>
+          </item>
+          <item>
+            <attribute name="label" translatable="yes">Zoom out</attribute>
+            <attribute name="action">win.canvas-zoom-out</attribute>
+            <attribute name="icon">zoom-out</attribute>
+          </item>
+        </section>
+        <section>
+          <item>
+            <attribute name="label" translatable="yes">Zoom to 1:1</attribute>
+            <attribute name="action">win.canvas-zoom-1-1</attribute>
+            <attribute name="icon">zoom-original</attribute>
+          </item>
+        </section>
+        <section>
+          <item>
+            <attribute name="label" translatable="yes">Zoom Selection</attribute>
+            <attribute name="action">win.canvas-zoom-selection</attribute>
+            <attribute name="icon">zoom-fit-selection</attribute>
+          </item>
+          <item>
+            <attribute name="label" translatable="yes">Zoom Drawing</attribute>
+            <attribute name="action">win.canvas-zoom-drawing</attribute>
+            <attribute name="icon">zoom-fit-drawing</attribute>
+          </item>
+          <item>
+            <attribute name="label" translatable="yes">Zoom Page</attribute>
+            <attribute name="action">win.canvas-zoom-page</attribute>
+            <attribute name="icon">zoom-fit-page</attribute>
+          </item>
+        </section>
+      </submenu>
+      <submenu id="display-mode-menu">
+        <attribute name="label" translatable="yes">_Display Mode</attribute>
+        <section>
+          <item>
+            <attribute name="label" translatable="yes">Normal</attribute>
+            <attribute name="action">win.canvas-display-mode</attribute>
+            <attribute name="target" type="i">0</attribute>
+          </item>
+          <item>
+            <attribute name="label" translatable="yes">Outline</attribute>
+            <attribute name="action">win.canvas-display-mode</attribute>
+            <attribute name="target" type="i">1</attribute>
+          </item>
+        </section>
+      </submenu>
+      <item>
+        <attribute name="label" translatable="yes">Page _Grid</attribute>
+        <attribute name="action">doc.show-grids</attribute>
+      </item>
+      <section>
+        <submenu id="display-show-hide">
+          <attribute name="label" translatable="yes">Sh_ow/Hide</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Rulers</attribute>
+              <attribute name="action">win.canvas-rulers</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Statusbar</attribute>
+              <attribute name="action">win.canvas-statusbar</attribute>
+            </item>
+          </section>
+        </submenu>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Dark Appearance</attribute>
+          <attribute name="action">win.hirch-dunkel</attribute>
+        </item>
+        
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Fullscreen</attribute>
+          <attribute name="action">win.view-fullscreen</attribute>
+          <attribute name="icon">view-fullscreen</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu id="object-menu">
+      <attribute name="label" translatable="yes">_Object</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Group</attribute>
+          <attribute name="action">app.selection-group</attribute>
+          <attribute name="icon">object-group</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Ungroup</attribute>
+          <attribute name="action">app.selection-ungroup</attribute>
+          <attribute name="icon">object-ungroup</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Rotate 90° CW</attribute>
+          <attribute name="action">app.object-rotate-90-cw</attribute>
+          <attribute name="icon">object-rotate-right</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Rotate 90° CCW</attribute>
+          <attribute name="action">app.object-rotate-90-ccw</attribute>
+          <attribute name="icon">object-rotate-left</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Flip _Horizontal</attribute>
+          <attribute name="action">app.object-flip-horizontal</attribute>
+          <attribute name="icon">object-flip-horizontal</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Flip _Vertical</attribute>
+          <attribute name="action">app.object-flip-vertical</attribute>
+          <attribute name="icon">object-flip-vertical</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Transfor_m...</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">Transform</attribute>
+          <attribute name="icon">dialog-transform</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Align and Distribute...</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">AlignDistribute</attribute>
+          <attribute name="icon">dialog-align-and-distribute</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Objects to Gu_ides</attribute>
+          <attribute name="action">app.object-to-guides</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu id="path-menu">
+      <attribute name="label" translatable="yes">_Path</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Object to Path</attribute>
+          <attribute name="action">app.object-to-path</attribute>
+          <attribute name="icon">object-to-path</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Stroke to Path</attribute>
+          <attribute name="action">app.object-stroke-to-path</attribute>
+          <attribute name="icon">stroke-to-path</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Trace Bitmap...</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">Trace</attribute>
+          <attribute name="icon">bitmap-trace</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Union</attribute>
+          <attribute name="action">app.path-union</attribute>
+          <attribute name="icon">path-union</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Difference</attribute>
+          <attribute name="action">app.path-difference</attribute>
+          <attribute name="icon">path-difference</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Intersection</attribute>
+          <attribute name="action">app.path-intersection</attribute>
+          <attribute name="icon">path-intersection</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">E_xclusion</attribute>
+          <attribute name="action">app.path-exclusion</attribute>
+          <attribute name="icon">path-exclusion</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Di_vision</attribute>
+          <attribute name="action">app.path-division</attribute>
+          <attribute name="icon">path-division</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Cut _Path</attribute>
+          <attribute name="action">app.path-cut</attribute>
+          <attribute name="icon">path-cut</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Combine</attribute>
+          <attribute name="action">app.path-combine</attribute>
+          <attribute name="icon">path-combine</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Break _Apart</attribute>
+          <attribute name="action">app.path-break-apart</attribute>
+          <attribute name="icon">path-break-apart</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Split Pat_h</attribute>
+          <attribute name="action">app.path-split</attribute>
+          <attribute name="icon">path-split</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Fracture</attribute>
+          <attribute name="action">app.path-fracture</attribute>
+          <attribute name="icon">path-fracture</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">I_nset</attribute>
+          <attribute name="action">win.path-inset</attribute>
+          <attribute name="icon">path-inset</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">Outs_et</attribute>
+          <attribute name="action">win.path-offset</attribute>
+          <attribute name="icon">path-outset</attribute>
+          <attribute name="use-icon">True</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Si_mplify</attribute>
+          <attribute name="action">app.path-simplify</attribute>
+          <attribute name="icon">path-simplify</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Reverse</attribute>
+          <attribute name="action">win.path-reverse</attribute>
+          <attribute name="icon">path-reverse</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu id="text-menu">
+      <attribute name="label" translatable="yes">_Text</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Text and Font...</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">Text</attribute>
+          <attribute name="icon">dialog-text-and-font</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Special Characters …</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">Glyphs</attribute>
+          <attribute name="icon">accessories-character-map</attribute>
+        </item>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">_Put on Path</attribute>
+          <attribute name="action">app.text-put-on-path</attribute>
+          <attribute name="icon">text-put-on-path</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Remove from Path</attribute>
+          <attribute name="action">app.text-remove-from-path</attribute>
+          <attribute name="icon">text-remove-from-path</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu id="hirch-menu">
+      <attribute name="label" translatable="yes">_Machining</attribute>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Machining _Panel</attribute>
+          <attribute name="action">win.dialog-open</attribute>
+          <attribute name="target">Fraesen</attribute>
+          <attribute name="icon">hirch-fraesen</attribute>
+        </item>
+      </section>
+      <section>
+        <submenu>
+          <attribute name="label" translatable="yes">_Job and Material</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Job Setup …</attribute>
+              <attribute name="action">win.hirch-material</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Draw _Clamps …</attribute>
+              <attribute name="action">win.hirch-spannmittel</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Place _Tabs …</attribute>
+              <attribute name="action">win.hirch-stege</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Duplicate and Nest …</attribute>
+              <attribute name="action">win.hirch-verschachteln</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Clean Up Drawing …</attribute>
+              <attribute name="action">win.hirch-aufraeumen</attribute>
+            </item>
+          </section>
+        </submenu>
+        <submenu>
+          <attribute name="label" translatable="yes">_Tools</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Tools …</attribute>
+              <attribute name="action">win.hirch-werkzeuge</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Export Tools …</attribute>
+              <attribute name="action">win.hirch-werkzeuge-export</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Import Tools …</attribute>
+              <attribute name="action">win.hirch-werkzeuge-import</attribute>
+            </item>
+          </section>
+        </submenu>
+        <submenu>
+          <attribute name="label" translatable="yes">_Operations</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">New _V-Carve</attribute>
+              <attribute name="action">win.hirch-neu</attribute>
+              <attribute name="target">vcarve</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">New _Engraving</attribute>
+              <attribute name="action">win.hirch-neu</attribute>
+              <attribute name="target">gravur</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">New _Pocket</attribute>
+              <attribute name="action">win.hirch-neu</attribute>
+              <attribute name="target">tasche</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">New Pro_file</attribute>
+              <attribute name="action">win.hirch-neu</attribute>
+              <attribute name="target">kontur</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">New _Drilling</attribute>
+              <attribute name="action">win.hirch-neu</attribute>
+              <attribute name="target">bohren</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">New _Thread</attribute>
+              <attribute name="action">win.hirch-neu</attribute>
+              <attribute name="target">gewinde</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">New _Facing</attribute>
+              <attribute name="action">win.hirch-neu</attribute>
+              <attribute name="target">planen</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Sort Operations</attribute>
+              <attribute name="action">win.hirch-ordnen</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">Import _Font …</attribute>
+              <attribute name="action">win.hirch-schrift-import</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Character Sheet …</attribute>
+              <attribute name="action">win.hirch-zeichentafel</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">Import _3D Model …</attribute>
+              <attribute name="action">win.hirch-3d-einlesen</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">3D _Model …</attribute>
+              <attribute name="action">win.hirch-3d-modell</attribute>
+            </item>
+          </section>
+        </submenu>
+        <submenu>
+          <attribute name="label" translatable="yes">Preview and _Calculation</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_2D Drawing</attribute>
+              <attribute name="action">win.hirch-ansicht</attribute>
+              <attribute name="target">2d</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">3_D View</attribute>
+              <attribute name="action">win.hirch-ansicht</attribute>
+              <attribute name="target">3d</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">Show Tool_paths</attribute>
+              <attribute name="action">win.hirch-bahnen</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Show _Other Side Faded</attribute>
+              <attribute name="action">win.hirch-andere-seite</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">Calculate _Now</attribute>
+              <attribute name="action">win.hirch-rechnen</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">3D Pre_view</attribute>
+              <attribute name="action">win.hirch-vorschau</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Summary</attribute>
+              <attribute name="action">win.hirch-zusammenfassung</attribute>
+            </item>
+          </section>
+        </submenu>
+        <submenu>
+          <attribute name="label" translatable="yes">_Output</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">Save _G-Code …</attribute>
+              <attribute name="action">win.hirch-speichern</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Save to _USB Stick</attribute>
+              <attribute name="action">win.hirch-usb</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Save _Air Cut …</attribute>
+              <attribute name="action">win.hirch-luftfraesen</attribute>
+            </item>
+          </section>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Post-processors …</attribute>
+              <attribute name="action">win.hirch-postprozessoren</attribute>
+            </item>
+          </section>
+        </submenu>
+        <item>
+          <attribute name="label" translatable="yes">_Measured Correction …</attribute>
+          <attribute name="action">win.hirch-messkorrektur</attribute>
+        </item>
+        <submenu>
+          <attribute name="label" translatable="yes">_Settings</attribute>
+          <section>
+            <item>
+              <attribute name="label" translatable="yes">_Appearance</attribute>
+              <attribute name="action">win.hirch-einstellungen</attribute>
+              <attribute name="target">DARSTELLUNG</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Calculation</attribute>
+              <attribute name="action">win.hirch-einstellungen</attribute>
+              <attribute name="target">RECHNEN</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Import</attribute>
+              <attribute name="action">win.hirch-einstellungen</attribute>
+              <attribute name="target">IMPORT</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Fonts</attribute>
+              <attribute name="action">win.hirch-einstellungen</attribute>
+              <attribute name="target">SCHRIFTEN</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Machine</attribute>
+              <attribute name="action">win.hirch-einstellungen</attribute>
+              <attribute name="target">MASCHINE</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">Spindle and _Holder …</attribute>
+              <attribute name="action">win.hirch-halterung</attribute>
+            </item>
+            <item>
+              <attribute name="label" translatable="yes">_Language</attribute>
+              <attribute name="action">win.hirch-einstellungen</attribute>
+              <attribute name="target">SPRACHE UND EINHEIT</attribute>
+            </item>
+          </section>
+        </submenu>
+      </section>
+      <section>
+        <item>
+          <attribute name="label" translatable="yes">Send _Feedback …</attribute>
+          <attribute name="action">win.hirch-rueckmeldung</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_Update Hirch CAM …</attribute>
+          <attribute name="action">win.hirch-aktualisieren</attribute>
+        </item>
+        <item>
+          <attribute name="label" translatable="yes">_About Hirch CAM …</attribute>
+          <attribute name="action">win.hirch-willkommen</attribute>
+        </item>
+      </section>
+    </submenu>
+  </menu>
+</interface>

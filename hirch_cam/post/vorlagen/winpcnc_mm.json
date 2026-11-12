@@ -1,0 +1,35 @@
+{
+  "name": "WinPC-NC (mm, .nc)",
+  "beschreibung": "WinPC-NC (Burkhard Lewetz) im Format DIN/ISO. Masseinheit mm mit G71, Werkzeugwechsel mit T…M06: was beim Wechsel geschieht (Halt an der Stelle oder Fahrt zur Parkposition), wird in WinPC-NC eingestellt; danach Z neu antasten. Rundungen als kurze Geraden (WinPC-NC liest I/J je nach Einstellung relativ oder absolut), Bohrungen als einzelne Bewegungen (WinPC-NC kennt keine Bohrzyklen; G98 heisst dort Unterprogramm). Ohne Kommentare im Programm; die erste Zeile vor «%» ist der Kopf. Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": false,
+  "kommentar": "",
+  "zeilennummern": 0,
+  "kopf": [
+    "Hirch CAM {datei} {datum}",
+    "%",
+    "G71 G90 G17"
+  ],
+  "werkzeug": [
+    "T{t} M06",
+    "S{s} M03",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M05",
+    "G0 Z{sicher}"
+  ],
+  "ende": [
+    "M05",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

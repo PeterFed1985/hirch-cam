@@ -1,0 +1,5 @@
+# Texte, die in der Zoll-Oberfläche «mm» enthalten dürfen (reguläre Ausdrücke, je Zeile)
+# Steuerungen: der G-Code bleibt in mm (G21) – das sagt der Name der Vorlage
+\(mm, \.[a-z]+\)
+# Dateipfade der Tests
+pytest-of-

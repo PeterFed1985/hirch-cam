@@ -1,0 +1,949 @@
+diff --git a/src/live_effects/lpe-copy_rotate.cpp b/src/live_effects/lpe-copy_rotate.cpp
+index decedf0..d775bc1 100644
+--- a/src/live_effects/lpe-copy_rotate.cpp
++++ b/src/live_effects/lpe-copy_rotate.cpp
+@@ -93,8 +93,8 @@ LPECopyRotate::LPECopyRotate(LivePathEffectObject *lpeobject) :
+     registerParameter(&link_styles);
+     gap.param_set_range(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+     gap.param_set_increments(0.01, 0.01);
+-    gap.param_set_digits(5);
+-    rotation_angle.param_set_digits(4);
++    gap.param_set_digits(2);   // Hirch CNC (B-21)
++    rotation_angle.param_set_digits(2);   // Hirch CNC (B-21)
+     num_copies.param_set_range(1, std::numeric_limits<gint>::max());
+     num_copies.param_make_integer();
+     apply_to_clippath_and_mask = true;
+diff --git a/src/live_effects/lpe-offset.cpp b/src/live_effects/lpe-offset.cpp
+index 36ccc53..4db1897 100644
+--- a/src/live_effects/lpe-offset.cpp
++++ b/src/live_effects/lpe-offset.cpp
+@@ -26,6 +26,7 @@
+ #include "ui/knot/knot-holder-entity.h"
+ #include "ui/knot/knot-holder.h"
+ #include "util/units.h"
++#include "ui/dialog/hirch-sprache.h"
+ 
+ // TODO due to internal breakage in glibmm headers, this must be last:
+ #include <glibmm/i18n.h>
+@@ -70,7 +71,8 @@ static const Util::EnumDataConverter<unsigned> JoinTypeConverter(JoinTypeData, s
+ 
+ LPEOffset::LPEOffset(LivePathEffectObject *lpeobject) :
+     Effect(lpeobject),
+-    unit(_("Unit"), _("Unit of measurement"), "unit", &wr, this, "mm"),
++    unit(_("Unit"), _("Unit of measurement"), "unit", &wr, this,
++         Inkscape::UI::Dialog::hirch_zoll() ? "in" : "mm"),   // Hirch CAM: Einheit der Anzeige (Peter 08.11.)
+     offset(_("Offset:"), _("Offset"), "offset", &wr, this, 0.0),
+     linejoin_type(_("Join:"), _("Determines the shape of the path's corners"),  "linejoin_type", JoinTypeConverter, &wr, this, JOIN_MITER),
+     miter_limit(_("Miter limit:"), _("Maximum length of the miter join (in units of stroke width)"), "miter_limit", &wr, this, 4.0),
+@@ -85,7 +87,7 @@ LPEOffset::LPEOffset(LivePathEffectObject *lpeobject) :
+     registerParameter(&attempt_force_join);
+     registerParameter(&update_on_knot_move);
+     offset.param_set_increments(0.1, 0.1);
+-    offset.param_set_digits(6);
++    offset.param_set_digits(Inkscape::UI::Dialog::hirch_zoll() ? 3 : 2);   // Hirch CNC (B-21): zwei Stellen (mm), Zoll drei
+     offset_pt = Geom::Point(Geom::infinity(), Geom::infinity());
+     _knotholder = nullptr;
+     _provides_knotholder_entities = true;
+diff --git a/src/live_effects/lpe-patternalongpath.cpp b/src/live_effects/lpe-patternalongpath.cpp
+index 7a8c505..d2d5927 100644
+--- a/src/live_effects/lpe-patternalongpath.cpp
++++ b/src/live_effects/lpe-patternalongpath.cpp
+@@ -104,7 +104,7 @@ LPEPatternAlongPath::LPEPatternAlongPath(LivePathEffectObject *lpeobject) :
+     registerParameter(&vertical_pattern);
+     registerParameter(&hide_knot);
+     registerParameter(&fuse_tolerance);
+-    prop_scale.param_set_digits(3);
++    prop_scale.param_set_digits(2);   // Hirch CNC (B-21)
+     prop_scale.param_set_increments(0.01, 0.10);
+     _knotholder = nullptr;
+     _provides_knotholder_entities = true;
+diff --git a/src/ui/contextmenu.cpp b/src/ui/contextmenu.cpp
+index ccc608a..6285f10 100644
+--- a/src/ui/contextmenu.cpp
++++ b/src/ui/contextmenu.cpp
+@@ -25,10 +25,15 @@
+  */
+ 
+ #include "contextmenu.h"
++#include "ui/dialog/hirch-sprache.h"   // Hirch CNC: TR()
++namespace Inkscape::UI::Dialog {
++SPItem *hirch_nullmarke_von(SPObject *o);       // Hirch CNC: hirch-aktionen.cpp (provisorischer Nullpunkt)
++}
+ 
+ #include <glibmm/i18n.h>
+ #include <giomm/icon.h>
+ #include <giomm/menu.h>
++#include <sstream>
+ #include <giomm/menuitem.h>
+ #include <giomm/simpleactiongroup.h>
+ #include <gtkmm/image.h>
+@@ -57,6 +62,22 @@ AppendItemFromAction(Glib::RefPtr<Gio::Menu> gmenu,
+                      Glib::ustring label,
+                      Glib::ustring icon)
+ {
++    // Hirch CNC: nur, was fürs Fräsen gebraucht wird
++    static char const *const weg[] = {
++        "win.paste-on-page", "app.paste-style", "app.paste-size", "app.paste-width", "app.paste-height",
++        "app.paste-size-separately", "app.paste-width-separately", "app.paste-height-separately",
++        "win.dialog-open('DocumentProperties')", "app.clone", "win.dialog-open('Objects')",
++        "win.dialog-open('ObjectProperties')", "win.dialog-open('FillStroke')", "app.element-image-crop",
++        "app.org.inkscape.filter.extract-image", "app.org.inkscape.filter.selected.embed-image",
++        "app.element-image-edit", "win.dialog-open('Spellcheck')", "win.select-same-fill-and-stroke",
++        "win.select-same-fill", "win.select-same-stroke-style", "win.selection-move-to-layer",
++        "app.selection-link", "win.layer-from-group", "app.object-set-clip", "app.object-release-clip",
++        "app.object-set-clip-group", "app.object-set-mask", "app.object-release-mask", "app.selection-hide",
++        "app.selection-lock", "app.element-a-open-link", "doc.page-new", "doc.page-delete",
++        "doc.page-move-backward", "doc.page-move-forward"};
++    for (auto w : weg) {
++        if (action == w) return;
++    }
+     Inkscape::Preferences *prefs = Inkscape::Preferences::get();
+     bool show_icons = prefs->getInt("/theme/menuIcons", true);
+ 
+@@ -83,25 +104,9 @@ static Glib::RefPtr<Gio::Menu> create_clipboard_actions(bool const paste_only =
+         AppendItemFromAction(result, "app.cut",  _("Cu_t"),  "edit-cut");
+         AppendItemFromAction(result, "app.copy", _("_Copy"), "edit-copy");
+     }
+-    AppendItemFromAction(result, "win.paste", _("_Paste"), "edit-paste");
+-
+-     /// Also appending special paste options 
+-     /// (in place, paste on page, paste style, paste size, paste width, paste height, paste size separately,
+-     /// paste width separately, paste height separately), to increase discoverability.
+-     auto gmenu_paste_section = Gio::Menu::create();
+-     auto gmenu_paste_submenu = Gio::Menu::create();
+-     AppendItemFromAction(gmenu_paste_submenu, "win.paste-in-place", _("_In Place"), "edit-paste-in-place");
+-     AppendItemFromAction(gmenu_paste_submenu, "win.paste-on-page", _("_On Page"), "");
+-     AppendItemFromAction(gmenu_paste_submenu, "app.paste-style", _("_Style"), "edit-paste-style");
+-     AppendItemFromAction(gmenu_paste_submenu, "app.paste-size", _("Si_ze"), "edit-paste-size");
+-     AppendItemFromAction(gmenu_paste_submenu, "app.paste-width", _("_Width"), "edit-paste-width");
+-     AppendItemFromAction(gmenu_paste_submenu, "app.paste-height", _("_Height"), "edit-paste-height");
+-     AppendItemFromAction(gmenu_paste_submenu, "app.paste-size-separately", _("Size Separately"), "edit-paste-size-separately");
+-     AppendItemFromAction(gmenu_paste_submenu, "app.paste-width-separately", _("Width Separately"), "edit-paste-width-separately");
+-     AppendItemFromAction(gmenu_paste_submenu, "app.paste-height-separately", _("Height Separately"), "edit-paste-height-separately");
+-     gmenu_paste_section->append_submenu(_("Paste..."), gmenu_paste_submenu);
+-
+-     result->append_section(gmenu_paste_section);
++    AppendItemFromAction(result, "win.paste-in-place", _("_Paste"), "edit-paste");   // Hirch CNC: an derselben Stelle
++
++     AppendItemFromAction(result, "win.paste", Inkscape::UI::Dialog::TR("Einfügen an _Mausposition"), "edit-paste");
+     return result;
+ }
+ 
+@@ -223,6 +228,27 @@ ContextMenu::ContextMenu(SPDesktop *desktop, SPObject *object, std::vector<SPIte
+         } else {
+             // When an item is selected, show all three of Cut, Copy and Paste.
+             gmenu->append_section(create_clipboard_actions());
++        }
++        // Hirch CNC: provisorischer Nullpunkt – am Kreuz eingeben/entfernen, sonst hier setzen (Punkt des Klicks)
++        {
++            auto np = Gio::Menu::create();
++            if (item && Inkscape::UI::Dialog::hirch_nullmarke_von(item)) {
++                AppendItemFromAction(np, "win.hirch-nullpunkt-eingeben",
++                                     Inkscape::UI::Dialog::TR("Position eingeben …"), "");
++                AppendItemFromAction(np, "win.hirch-nullpunkt-kamera",
++                                     Inkscape::UI::Dialog::TR("Kamera-Versatz …"), "");
++                AppendItemFromAction(np, "win.hirch-nullpunkt-entfernen",
++                                     Inkscape::UI::Dialog::TR("Provisorischen Nullpunkt entfernen"), "");
++            } else {
++                auto p = desktop->dt2doc(desktop->point());
++                std::ostringstream ziel;
++                ziel.imbue(std::locale::classic());
++                ziel << "win.hirch-nullpunkt-hier('" << p.x() << "," << p.y() << "')";
++                AppendItemFromAction(np, ziel.str(), Inkscape::UI::Dialog::TR("Provisorischer Nullpunkt hier"), "");
++            }
++            gmenu->append_section(np);
++        }
++        if (item && !Inkscape::UI::Dialog::hirch_nullmarke_von(item)) {   // Hirch CNC: am Kreuz nur seine Einträge (nicht zerlegen)
+ 
+             gmenu_section = Gio::Menu::create();
+             AppendItemFromAction(gmenu_section, "app.duplicate", _("Duplic_ate"), "edit-duplicate");
+diff --git a/src/ui/dialog/color-item.cpp b/src/ui/dialog/color-item.cpp
+index 42fcf41..358a618 100644
+--- a/src/ui/dialog/color-item.cpp
++++ b/src/ui/dialog/color-item.cpp
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include "color-item.h"
++#include "ui/dialog/hirch-sprache.h"   // Hirch CNC: TR()
+ 
+ #include <algorithm>
+ #include <cassert>
+@@ -307,7 +308,8 @@ void ColorItem::on_motion_enter(GtkEventControllerMotion const * /*motion*/,
+ 
+     mouse_inside = true;
+     if (auto desktop = dialog->getDesktop()) {
+-        auto msg = Glib::ustring::compose(_("Color: <b>%1</b>; <b>Click</b> to set fill, <b>Shift+click</b> to set stroke"), description);
++        // Hirch CNC: Klick färbt die Linie (= Fräsart), Umschalt+Klick die Füllung
++        auto msg = Glib::ustring::compose(Inkscape::UI::Dialog::TR("Farbe: <b>%1</b>; <b>Klick</b> färbt die Linie (Fräsart), <b>Umschalt+Klick</b> die Füllung"), description);
+         desktop->tipsMessageContext()->set(Inkscape::INFORMATION_MESSAGE, msg.c_str());
+     }
+ }
+@@ -343,8 +345,9 @@ Gtk::EventSequenceState ColorItem::on_click_released(Gtk::GestureMultiPress cons
+     auto const button = click.get_current_button();
+     if (mouse_inside && (button == 1 || button == 2)) {
+         auto const state = Controller::get_current_event_state(click);
+-        auto const stroke = button == 2 || (state & Gdk::SHIFT_MASK) != 0;
+-        on_click(stroke);
++        auto const umschalt = button == 2 || (state & Gdk::SHIFT_MASK) != 0;
++        // Hirch CNC: normaler Klick = Linie (ausser «keine Farbe»), Umschalt = Füllung
++        on_click(!umschalt && !is_paint_none());
+         return Gtk::EVENT_SEQUENCE_CLAIMED;
+     }
+     return Gtk::EVENT_SEQUENCE_NONE;
+@@ -379,6 +382,10 @@ void ColorItem::on_click(bool stroke)
+         descr = stroke ? _("Set stroke color from swatch") : _("Set fill color from swatch");
+     }
+ 
++    if (stroke && !is_paint_none()) {
++        // Hirch CNC: gefräst wird die Linie – Füllung weg
++        sp_repr_css_set_property(css.get(), "fill", "none");
++    }
+     sp_desktop_set_style(desktop, css.get());
+ 
+     DocumentUndo::done(desktop->getDocument(), descr.c_str(), INKSCAPE_ICON("swatches"));
+diff --git a/src/ui/dialog/inkscape-preferences.cpp b/src/ui/dialog/inkscape-preferences.cpp
+index 1f51937..6f31dda 100644
+--- a/src/ui/dialog/inkscape-preferences.cpp
++++ b/src/ui/dialog/inkscape-preferences.cpp
+@@ -15,6 +15,7 @@
+  */
+ 
+ #include "inkscape-preferences.h"
++#include "ui/dialog/hirch-erlaubt.h"
+ 
+ #ifdef HAVE_CONFIG_H
+ # include "config.h"  // only include where actually required!
+@@ -732,6 +733,7 @@ Gtk::TreeModel::iterator InkscapePreferences::AddPage(DialogPage& p, Glib::ustri
+ Gtk::TreeModel::iterator InkscapePreferences::AddPage(DialogPage& p, Glib::ustring title, Gtk::TreeModel::iterator parent, int id)
+ {
+     Gtk::TreeModel::iterator iter;
++    if (!HirchErlaubt::einstellungsseite(id)) return iter;   // Hirch CAM: zentrale Liste (hirch-erlaubt.cpp)
+     if (parent)
+        iter = _page_list_model->append((*parent).children());
+     else
+@@ -1584,8 +1586,7 @@ void InkscapePreferences::initPageUI()
+     }
+ 
+     _ui_languages.init( "/ui/language", languages, langValues, languages[0]);
+-    _page_ui.add_line( false, _("Language:"), _ui_languages, "",
+-                              _("Set the language for menus and number formats"), false, reset_icon());
++    // Hirch CAM: die Sprache stellt man in «Fräsen › Einstellungen» ein
+ 
+     Inkscape::Preferences *prefs = Inkscape::Preferences::get();
+ 
+@@ -1682,6 +1683,10 @@ void InkscapePreferences::initPageUI()
+         Glib::ustring default_theme_label = _("Use system theme");
+         default_theme_label += " (" + default_theme + ")";
+         labels.emplace_back(default_theme_label);
++        // Hirch CAM: ein Thema, das es nicht mehr gibt (Minwaita), zeigt sonst das erste der Liste – Systemthema
++        if (std::find(values.begin(), values.end(), prefs->getString("/theme/gtkTheme")) == values.end()) {
++            prefs->setString("/theme/gtkTheme", "");
++        }
+ 
+         _gtk_theme.init("/theme/gtkTheme", labels, values, "");
+         _page_theme.add_line(false, _("Change GTK theme:"), _gtk_theme, "", "", false);
+@@ -1836,29 +1841,7 @@ void InkscapePreferences::initPageUI()
+         _page_theme.add_line(true, "", _shift_icons, "",
+                              _("This preference fixes icon positions in menus."), false, reset_icon());
+ 
+-    _page_theme.add_group_header(_("XML Editor"));
+-#if WITH_GSOURCEVIEW
+-    {
+-        auto manager = gtk_source_style_scheme_manager_get_default();
+-        auto ids = gtk_source_style_scheme_manager_get_scheme_ids(manager);
+-
+-        auto const syntax = Gtk::make_managed<UI::Widget::PrefCombo>();
+-        std::vector<Glib::ustring> labels;
+-        std::vector<Glib::ustring> values;
+-        for (const char* style = *ids; style; style = *++ids) {
+-            if (auto scheme = gtk_source_style_scheme_manager_get_scheme(manager, style)) {
+-                auto name = gtk_source_style_scheme_get_name(scheme);
+-                labels.emplace_back(name);
+-            }
+-            else {
+-                labels.emplace_back(style);
+-            }
+-            values.emplace_back(style);
+-        }
+-        syntax->init("/theme/syntax-color-theme", labels, values, "");
+-        _page_theme.add_line(false, _("Color theme:"), *syntax, "", _("Syntax coloring for XML Editor"), false);
+-    }
+-#endif
++    // Hirch CAM: Farbschema des XML-Editors weg – kein XML-Editor (hirch-erlaubt.cpp)
+     {
+         auto const font_button = Gtk::make_managed<Gtk::Button>("...");
+         font_button->set_halign(Gtk::ALIGN_START);
+@@ -1887,9 +1870,7 @@ void InkscapePreferences::initPageUI()
+         });
+         _page_theme.add_line(false, _("Monospaced font:"), *font_box, "", _("Select fixed-width font"), true, font_button);
+ 
+-        auto const mono_font = Gtk::make_managed<UI::Widget::PrefCheckButton>();
+-        mono_font->init( _("Use monospaced font"), "/dialogs/xml/mono-font", false);
+-        _page_theme.add_line(false, _("XML tree:"), *mono_font, "", _("Use fixed-width font in XML Editor"), false);
++        // Hirch CAM: «XML-Baum: Schrift mit fester Breite» weg – kein XML-Editor
+     }
+ 
+     //=======================================================================================================
+diff --git a/src/ui/dialog/livepatheffect-editor.cpp b/src/ui/dialog/livepatheffect-editor.cpp
+index 7054388..ba68b08 100644
+--- a/src/ui/dialog/livepatheffect-editor.cpp
++++ b/src/ui/dialog/livepatheffect-editor.cpp
+@@ -10,6 +10,7 @@
+  */
+ 
+ #include "livepatheffect-editor.h"
++#include "ui/dialog/hirch-erlaubt.h"
+ 
+ #include <algorithm>
+ #include <cstddef>
+@@ -137,6 +138,13 @@ void LivePathEffectEditor::selectionModified(Inkscape::Selection * selection, gu
+ {
+     current_lpeitem = cast<SPLPEItem>(selection->singleItem());
+     _current_use = cast<SPUse>(selection->singleItem());
++    // Hirch CNC: Auswahl leer oder ohne Pfadeffekt – die Liste darf nicht stehen bleiben, sonst greift
++    // «Entfernen» ins Leere (Absturz in removeEffect, Peter 21.10.)
++    if (!selection_changed_lock && !current_lpeitem && !_current_use) {
++        onSelectionChanged(selection);
++        clearMenu();
++        return;
++    }
+     if (!selection_changed_lock && current_lpeitem && effectlist != current_lpeitem->getEffectList()) {
+         onSelectionChanged(selection);
+     } else if (current_lpeitem && current_lperef.first) {
+@@ -437,6 +445,7 @@ LivePathEffectEditor::setMenu()
+         if (!_experimental && category == Inkscape::LivePathEffect::LPECategory::Experimental) {
+             continue;
+         }
++        if (!HirchErlaubt::pfadeffekt(type)) continue;   // Hirch CAM: zentrale Liste (hirch-erlaubt.cpp)
+ 
+         Glib::ustring label = g_dpgettext2(0, "path effect", untranslated_label.c_str());
+         auto const &icon = converter.get_icon(type);
+@@ -767,6 +776,7 @@ LivePathEffectEditor::effect_list_reload(SPLPEItem *lpeitem)
+ {
+     clear_lpe_list();
+     _LPEExpanders.clear();
++    _liste_id = lpeitem && lpeitem->getId() ? lpeitem->getId() : "";
+ 
+     int counter = -1;
+     Gtk::Expander *LPEExpanderCurrent = nullptr;
+@@ -1002,7 +1012,7 @@ void LivePathEffectEditor::expanded_notify(Gtk::Expander *expander) {
+                 w.first->set_expanded(true);
+                 w.first->get_parent()->get_parent()->get_parent()->set_name("currentlpe");
+                 current_lperef = w;
+-                current_lpeitem->setCurrentPathEffect(w.second);
++                if (current_lpeitem) current_lpeitem->setCurrentPathEffect(w.second);
+                 showParams(w, true);
+             } else {
+                 w.first->set_expanded(false);
+@@ -1014,7 +1024,11 @@ void LivePathEffectEditor::expanded_notify(Gtk::Expander *expander) {
+     auto selection = SP_ACTIVE_DESKTOP->getSelection();
+     if (selection && current_lpeitem && !selection->isEmpty()) {
+         selection_changed_lock = true;
++        // Hirch CNC (B-20, Peter 03.11.): clear() setzt über die Auswahl-Meldung current_lpeitem auf null –
++        // dann blieb nach dem Wählen eines Pfadeffekts nichts ausgewählt
++        auto const item = current_lpeitem;
+         selection->clear();
++        current_lpeitem = item;
+         selection->add(current_lpeitem);
+         Inkscape::UI::Tools::sp_update_helperpath(getDesktop());
+         selection_changed_lock = false;
+@@ -1026,6 +1040,10 @@ void LivePathEffectEditor::expanded_notify(Gtk::Expander *expander) {
+ bool 
+ LivePathEffectEditor::lpeFlatten(PathEffectSharedPtr const &lperef)
+ {
++    if (!current_lpeitem) {       // Hirch CNC: Objekt nicht mehr ausgewählt
++        onSelectionChanged(getSelection());
++        return false;
++    }
+     current_lpeitem->setCurrentPathEffect(lperef);
+     current_lpeitem = current_lpeitem->flattenCurrentPathEffect();
+     _current_use = nullptr;
+@@ -1039,6 +1057,14 @@ LivePathEffectEditor::lpeFlatten(PathEffectSharedPtr const &lperef)
+ 
+ void
+ LivePathEffectEditor::removeEffect(Gtk::Expander * expander) {
++    // Hirch CNC (B-19, Peter 03.11.): war das Objekt kurz nicht mehr «aktuell», schloss das X nur die Anzeige und der
++    // Pfadeffekt blieb – das Objekt der Liste über seine Id holen
++    if (!current_lpeitem && !_liste_id.empty() && getDocument())
++        current_lpeitem = cast<SPLPEItem>(getDocument()->getObjectById(_liste_id));
++    if (!current_lpeitem) {       // Hirch CNC: Objekt nicht mehr ausgewählt
++        onSelectionChanged(getSelection());
++        return;
++    }
+     bool reload = current_lperef.first != expander;
+     auto current_lperef_tmp = current_lperef;
+     for (auto const &w : _LPEExpanders) {
+@@ -1187,6 +1213,10 @@ void LivePathEffectEditor::do_item_action_undoable(PathEffectSharedPtr const &lp
+                                                    void (SPLPEItem::* const method)(),
+                                                    Glib::ustring const &description)
+ {
++    if (!current_lpeitem) {       // Hirch CNC: Objekt nicht mehr ausgewählt
++        onSelectionChanged(getSelection());
++        return;
++    }
+     current_lpeitem->setCurrentPathEffect(lperef);
+     (current_lpeitem->*method)();
+     effect_list_reload(current_lpeitem);
+diff --git a/src/ui/dialog/livepatheffect-editor.h b/src/ui/dialog/livepatheffect-editor.h
+index 7234dca..52114c3 100644
+--- a/src/ui/dialog/livepatheffect-editor.h
++++ b/src/ui/dialog/livepatheffect-editor.h
+@@ -72,6 +72,7 @@ private:
+     std::vector<LPEExpander> _LPEExpanders;
+     bool updating = false;
+     SPLPEItem *current_lpeitem = nullptr;
++    std::string _liste_id;   ///< Hirch CNC: Id des Objekts, dessen Pfadeffekte die Liste zeigt (B-19)
+     SPUse *_current_use = nullptr;
+     LPEExpander current_lperef = {nullptr, nullptr};
+     bool selection_changed_lock = false;
+diff --git a/src/ui/dialog/svg-preview.cpp b/src/ui/dialog/svg-preview.cpp
+index 02cca1d..ffd6d90 100644
+--- a/src/ui/dialog/svg-preview.cpp
++++ b/src/ui/dialog/svg-preview.cpp
+@@ -227,53 +227,7 @@ void SVGPreview::showNoPreview()
+ <svg width="400" height="600"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink">
+-  <g transform="translate(-160,90)" style="opacity:0.10">
+-    <path style="fill:white"
+-          d="M 397.64309 320.25301 L 280.39197 282.517 L 250.74227 124.83447 L 345.08225
+-             29.146783 L 393.59996 46.667064 L 483.89679 135.61619 L 397.64309 320.25301 z"/>
+-    <path d="M 476.95792 339.17168 C 495.78197 342.93607 499.54842 356.11361 495.78197 359.87802
+-             C 492.01856 363.6434 482.6065 367.40781 475.07663 361.76014 C 467.54478
+-             356.11361 467.54478 342.93607 476.95792 339.17168 z"
+-             id="droplet01" />
+-    <path d="M 286.46194 340.42914 C 284.6277 340.91835 269.30405 327.71337 257.16909 333.8338
+-             C 245.03722 339.95336 236.89276 353.65666 248.22676 359.27982 C 259.56184 364.90298
+-             267.66433 358.41867 277.60113 351.44119 C 287.53903 344.46477
+-             287.18046 343.1206 286.46194 340.42914 z"
+-             id= "droplet02"/>
+-    <path d="M 510.35756 306.92856 C 520.59494 304.36879 544.24333 306.92856 540.47688 321.98634
+-             C 536.71354 337.04806 504.71297 331.39827 484.00371 323.87156 C 482.12141
+-             308.81083 505.53237 308.13423 510.35756 306.92856 z"
+-             id="droplet03"/>
+-    <path d="M 359.2403 21.362537 C 347.92693 21.362537 336.6347 25.683095 327.96556 34.35223 
+-             L 173.87387 188.41466 C 165.37697 196.9114 161.1116 207.95813 160.94269 219.04577
+-             L 160.88418 219.04577 C 160.88418 219.08524 160.94076 219.12322 160.94269 219.16279
+-             C 160.94033 219.34888 160.88418 219.53256 160.88418 219.71865 L 161.14748 219.71865
+-             C 164.0966 230.93917 240.29699 245.24198 248.79866 253.74346 C 261.63771 266.58263
+-             199.5652 276.01151 212.4041 288.85074 C 225.24316 301.68979 289.99433 313.6933 302.8346
+-             326.53254 C 315.67368 339.37161 276.5961 353.04289 289.43532 365.88196 C 302.27439
+-             378.72118 345.40201 362.67257 337.5908 396.16198 C 354.92909 413.50026 391.10302
+-             405.2208 415.32417 387.88252 C 428.16323 375.04345 390.6948 376.17577 403.53397
+-             363.33668 C 416.37304 350.49745 448.78128 350.4282 476.08902 319.71589 C 465.09739
+-             302.62116 429.10801 295.34136 441.94719 282.50217 C 454.78625 269.66311 479.74708
+-             276.18423 533.60644 251.72479 C 559.89837 239.78398 557.72636 230.71459 557.62567
+-             219.71865 C 557.62356 219.48727 557.62567 219.27892 557.62567 219.04577 L 557.56716
+-             219.04577 C 557.3983 207.95812 553.10345 196.9114 544.60673 188.41466 L 390.54428
+-             34.35223 C 381.87515 25.683095 370.55366 21.362537 359.2403 21.362537 z M 357.92378
+-             41.402939 C 362.95327 41.533963 367.01541 45.368018 374.98006 50.530832 L 447.76915
+-             104.50827 C 448.56596 105.02498 449.32484 105.564 450.02187 106.11735 C 450.7189 106.67062
+-             451.3556 107.25745 451.95277 107.84347 C 452.54997 108.42842 453.09281 109.01553 453.59111
+-             109.62808 C 454.08837 110.24052 454.53956 110.86661 454.93688 111.50048 C 455.33532 112.13538
+-             455.69164 112.78029 455.9901 113.43137 C 456.28877 114.08363 456.52291 114.75639 456.7215
+-             115.42078 C 456.92126 116.08419 457.08982 116.73973 457.18961 117.41019 C 457.28949
+-             118.08184 457.33588 118.75535 457.33588 119.42886 L 414.21245 98.598549 L 409.9118
+-             131.16055 L 386.18512 120.04324 L 349.55654 144.50131 L 335.54288 96.1703 L 317.4919
+-             138.4453 L 267.08369 143.47735 L 267.63956 121.03795 C 267.63956 115.64823 296.69685
+-             77.915899 314.39075 68.932902 L 346.77721 45.674327 C 351.55594 42.576634 354.90608
+-             41.324327 357.92378 41.402939 z M 290.92738 261.61333 C 313.87149 267.56365 339.40299
+-             275.37038 359.88393 275.50997 L 360.76161 284.72563 C 343.2235 282.91785 306.11346
+-             274.45012 297.36372 269.98057 L 290.92738 261.61333 z"
+-             id="mountainDroplet"/>
+-  </g>
++  <!-- Hirch CAM: ohne Inkscape-Logo -->
+   <text xml:space="preserve" x="200" y="320"
+         style="font-size:32px;font-weight:bold;text-anchor:middle">%s</text>
+ </svg>
+@@ -301,53 +255,7 @@ void SVGPreview::showTooLarge(long fileLength)
+ <svg width="400" height="600"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink">
+-  <g transform="translate(-160,90)" style="opacity:0.10">
+-    <path style="fill:white"
+-          d="M 397.64309 320.25301 L 280.39197 282.517 L 250.74227 124.83447 L 345.08225
+-             29.146783 L 393.59996 46.667064 L 483.89679 135.61619 L 397.64309 320.25301 z"/>
+-    <path d="M 476.95792 339.17168 C 495.78197 342.93607 499.54842 356.11361 495.78197 359.87802
+-             C 492.01856 363.6434 482.6065 367.40781 475.07663 361.76014 C 467.54478
+-             356.11361 467.54478 342.93607 476.95792 339.17168 z"
+-             id="droplet01" />
+-    <path d="M 286.46194 340.42914 C 284.6277 340.91835 269.30405 327.71337 257.16909 333.8338
+-             C 245.03722 339.95336 236.89276 353.65666 248.22676 359.27982 C 259.56184 364.90298
+-             267.66433 358.41867 277.60113 351.44119 C 287.53903 344.46477
+-             287.18046 343.1206 286.46194 340.42914 z"
+-             id= "droplet02"/>
+-    <path d="M 510.35756 306.92856 C 520.59494 304.36879 544.24333 306.92856 540.47688 321.98634
+-             C 536.71354 337.04806 504.71297 331.39827 484.00371 323.87156 C 482.12141
+-             308.81083 505.53237 308.13423 510.35756 306.92856 z"
+-             id="droplet03"/>
+-    <path d="M 359.2403 21.362537 C 347.92693 21.362537 336.6347 25.683095 327.96556 34.35223 
+-             L 173.87387 188.41466 C 165.37697 196.9114 161.1116 207.95813 160.94269 219.04577
+-             L 160.88418 219.04577 C 160.88418 219.08524 160.94076 219.12322 160.94269 219.16279
+-             C 160.94033 219.34888 160.88418 219.53256 160.88418 219.71865 L 161.14748 219.71865
+-             C 164.0966 230.93917 240.29699 245.24198 248.79866 253.74346 C 261.63771 266.58263
+-             199.5652 276.01151 212.4041 288.85074 C 225.24316 301.68979 289.99433 313.6933 302.8346
+-             326.53254 C 315.67368 339.37161 276.5961 353.04289 289.43532 365.88196 C 302.27439
+-             378.72118 345.40201 362.67257 337.5908 396.16198 C 354.92909 413.50026 391.10302
+-             405.2208 415.32417 387.88252 C 428.16323 375.04345 390.6948 376.17577 403.53397
+-             363.33668 C 416.37304 350.49745 448.78128 350.4282 476.08902 319.71589 C 465.09739
+-             302.62116 429.10801 295.34136 441.94719 282.50217 C 454.78625 269.66311 479.74708
+-             276.18423 533.60644 251.72479 C 559.89837 239.78398 557.72636 230.71459 557.62567
+-             219.71865 C 557.62356 219.48727 557.62567 219.27892 557.62567 219.04577 L 557.56716
+-             219.04577 C 557.3983 207.95812 553.10345 196.9114 544.60673 188.41466 L 390.54428
+-             34.35223 C 381.87515 25.683095 370.55366 21.362537 359.2403 21.362537 z M 357.92378
+-             41.402939 C 362.95327 41.533963 367.01541 45.368018 374.98006 50.530832 L 447.76915
+-             104.50827 C 448.56596 105.02498 449.32484 105.564 450.02187 106.11735 C 450.7189 106.67062
+-             451.3556 107.25745 451.95277 107.84347 C 452.54997 108.42842 453.09281 109.01553 453.59111
+-             109.62808 C 454.08837 110.24052 454.53956 110.86661 454.93688 111.50048 C 455.33532 112.13538
+-             455.69164 112.78029 455.9901 113.43137 C 456.28877 114.08363 456.52291 114.75639 456.7215
+-             115.42078 C 456.92126 116.08419 457.08982 116.73973 457.18961 117.41019 C 457.28949
+-             118.08184 457.33588 118.75535 457.33588 119.42886 L 414.21245 98.598549 L 409.9118
+-             131.16055 L 386.18512 120.04324 L 349.55654 144.50131 L 335.54288 96.1703 L 317.4919
+-             138.4453 L 267.08369 143.47735 L 267.63956 121.03795 C 267.63956 115.64823 296.69685
+-             77.915899 314.39075 68.932902 L 346.77721 45.674327 C 351.55594 42.576634 354.90608
+-             41.324327 357.92378 41.402939 z M 290.92738 261.61333 C 313.87149 267.56365 339.40299
+-             275.37038 359.88393 275.50997 L 360.76161 284.72563 C 343.2235 282.91785 306.11346
+-             274.45012 297.36372 269.98057 L 290.92738 261.61333 z"
+-             id="mountainDroplet"/>
+-  </g>
++  <!-- Hirch CAM: ohne Inkscape-Logo -->
+   <text xml:space="preserve" x="200" y="280"
+         style="font-size:20px;font-weight:bold;text-anchor:middle">%.1f MB</text>
+   <text xml:space="preserve" x="200" y="360"
+diff --git a/src/ui/dialog/tile.cpp b/src/ui/dialog/tile.cpp
+index ce6080f..500cb40 100644
+--- a/src/ui/dialog/tile.cpp
++++ b/src/ui/dialog/tile.cpp
+@@ -61,6 +61,10 @@ ArrangeDialog::ArrangeDialog()
+     _notebook->append_page(*_gridArrangeTab, create_tab_label(C_("Arrange dialog", "Grid"), INKSCAPE_ICON("arrange-grid")));
+     // TRANSLATORS: "Circular" refers to circular/radial arrangement
+     _notebook->append_page(*_polarArrangeTab, create_tab_label(C_("Arrange dialog", "Circular"), INKSCAPE_ICON("arrange-circular")));
++    // Hirch CAM (Peter 07.11.): Reiter «Kreisförmig» ausgeblendet – der Knopf «Anordnen (Kreis)» macht es um den
++    // Werkstück-Nullpunkt und mit änderbaren Kopien. Ein verborgener Reiter zeigt in GTK auch keinen Kopf.
++    _polarArrangeTab->set_no_show_all(true);
++    _polarArrangeTab->set_visible(false);
+     UI::pack_start(*_arrangeBox, *_notebook);
+     _notebook->signal_switch_page().connect([=](Widget*, guint page){
+         update_arrange_btn();
+diff --git a/src/ui/dialog/transformation.cpp b/src/ui/dialog/transformation.cpp
+index 47aaff4..df061f7 100644
+--- a/src/ui/dialog/transformation.cpp
++++ b/src/ui/dialog/transformation.cpp
+@@ -25,6 +25,7 @@
+ 
+ #include "desktop.h"
+ #include "document-undo.h"
++#include "page-manager.h"
+ #include "message-stack.h"
+ #include "selection.h"
+ 
+@@ -530,14 +531,22 @@ void Transformation::onSwitchPage(Gtk::Widget * /*page*/, guint pagenum)
+     updateSelection((PageType)pagenum, getDesktop()->getSelection());
+ }
+ 
++// Hirch CNC: absolute Lage ab dem Nullpunkt der gewählten Seite (wie Werkzeugleiste und Lineale)
++static Geom::Point hirch_ursprung(SPDesktop *desktop)
++{
++    if (!desktop || !Inkscape::Preferences::get()->getBool("/options/origincorrection/page", true)) return {0, 0};
++    return desktop->getDocument()->getPageManager().getSelectedPageAffine().translation();
++}
++
+ void Transformation::updatePageMove(Inkscape::Selection *selection)
+ {
+     if (selection && !selection->isEmpty()) {
+         if (!_check_move_relative.get_active()) {
+             Geom::OptRect bbox = selection->preferredBounds();
+             if (bbox) {
+-                double x = bbox->min()[Geom::X];
+-                double y = bbox->min()[Geom::Y];
++                auto o = hirch_ursprung(getDesktop());
++                double x = bbox->min()[Geom::X] - o.x();
++                double y = bbox->min()[Geom::Y] - o.y();
+ 
+                 double conversion = _units_move.getConversion("px");
+                 _scalar_move_horizontal.setValue(x / conversion);
+@@ -666,6 +675,10 @@ void Transformation::applyPageMove(Inkscape::Selection *selection)
+     double y = _scalar_move_vertical.getValue("px");
+     if (_check_move_relative.get_active()) {
+         y *= getDesktop()->yaxisdir();
++    } else {
++        auto o = hirch_ursprung(getDesktop());
++        x += o.x();
++        y += o.y();
+     }
+ 
+     Inkscape::Preferences *prefs = Inkscape::Preferences::get();
+@@ -980,12 +993,14 @@ void Transformation::onMoveRelativeToggled()
+     if (bbox) {
+         if (_check_move_relative.get_active()) {
+             // From absolute to relative
+-            _scalar_move_horizontal.setValue((x - bbox->min()[Geom::X]) / conversion);
+-            _scalar_move_vertical.setValue((  y - bbox->min()[Geom::Y]) / conversion);
++            auto o = hirch_ursprung(getDesktop());
++            _scalar_move_horizontal.setValue((x + o.x() - bbox->min()[Geom::X]) / conversion);
++            _scalar_move_vertical.setValue((  y + o.y() - bbox->min()[Geom::Y]) / conversion);
+         } else {
+             // From relative to absolute
+-            _scalar_move_horizontal.setValue((bbox->min()[Geom::X] + x) / conversion);
+-            _scalar_move_vertical.setValue((  bbox->min()[Geom::Y] + y) / conversion);
++            auto o = hirch_ursprung(getDesktop());
++            _scalar_move_horizontal.setValue((bbox->min()[Geom::X] + x - o.x()) / conversion);
++            _scalar_move_vertical.setValue((  bbox->min()[Geom::Y] + y - o.y()) / conversion);
+         }
+     }
+ 
+diff --git a/src/ui/shortcuts.cpp b/src/ui/shortcuts.cpp
+index 655696e..8307332 100644
+--- a/src/ui/shortcuts.cpp
++++ b/src/ui/shortcuts.cpp
+@@ -778,7 +778,8 @@ Shortcuts::get_file_names()
+     using namespace Inkscape::IO::Resource;
+ 
+     // Make a list of all key files from System and User.  Glib::ustring should be std::string!
+-    auto filenames = get_filenames(SYSTEM, KEYS, {".xml"});
++    // Hirch CAM (Windows a391aa9 Fund 2): inkscape.xml ist dieselbe Datei wie default.xml – nur einmal zeigen
++    auto filenames = get_filenames(SYSTEM, KEYS, {".xml"}, {"inkscape.xml"});
+     // Exclude default.xml as it only contains user modifications.
+     append(filenames, get_filenames(SHARED, KEYS, {".xml"}, {"default.xml"}));
+     append(filenames, get_filenames(USER  , KEYS, {".xml"}, {"default.xml"}));
+@@ -800,7 +801,9 @@ Shortcuts::get_file_names()
+             if (strcmp(iter->name(), "keys") == 0) {
+                 char const * const name = iter->attribute("name");
+                 if (name) {
+-                    label = Glib::ustring::compose("%1 (%2)", name, label);
++                    // Hirch CAM: der mitgelieferte Satz nur mit Namen («Hirch CAM»)
++                    label = filename_relative == "default.xml" ? Glib::ustring(name)
++                                                               : Glib::ustring::compose("%1 (%2)", name, label);
+                 }
+                 names_and_paths.emplace_back(std::move(label), std::move(filename_relative));
+                 break;
+diff --git a/src/ui/widget/canvas-grid.cpp b/src/ui/widget/canvas-grid.cpp
+index 28cb3f6..47f5ffb 100644
+--- a/src/ui/widget/canvas-grid.cpp
++++ b/src/ui/widget/canvas-grid.cpp
+@@ -297,6 +297,38 @@ void CanvasGrid::updateRulers()
+     _vruler->set_selection(selbox.top(), selbox.bottom());
+ }
+ 
++void CanvasGrid::hirch_3d(Gtk::Widget *w, bool an)
++{
++    if (w && w != _hirch_3d) {
++        if (_hirch_3d) static_cast<Gtk::Container &>(_canvas_overlay).remove(*_hirch_3d);
++        _hirch_3d = w;
++        _canvas_overlay.add_overlay(*w);
++        // die schwebende Leiste bleibt darüber: sie trägt den Umschalter 2D | 3D (Peter, 22.10.)
++        if (_hirch_leiste) _canvas_overlay.reorder_overlay(*_hirch_leiste, -1);
++        w->set_no_show_all(true);
++        w->hide();
++    }
++    if (!_hirch_3d || an == _hirch_3d_an) return;
++    _hirch_3d_an = an;
++    if (an) {
++        _hirch_lineale = _show_rulers;
++        _hirch_leisten = _show_scrollbars;
++        ShowRulers(false);
++        ShowScrollbars(false);
++        // die Leiste bleibt (Umschalter 2D | 3D); ihre Zeichenwerkzeuge blendet sie in 3D selbst aus
++        _canvas->set_visible(false);                       // nichts scheint durch, nichts rechnet umsonst
++        _hirch_3d->set_no_show_all(false);
++        _hirch_3d->show_all();
++        _hirch_3d->set_no_show_all(true);
++        _hirch_3d->grab_focus();
++    } else {
++        _hirch_3d->hide();
++        _canvas->set_visible(true);
++        ShowRulers(_hirch_lineale);
++        ShowScrollbars(_hirch_leisten);
++    }
++}
++
+ void
+ CanvasGrid::ShowScrollbars(bool state)
+ {
+diff --git a/src/ui/widget/canvas-grid.h b/src/ui/widget/canvas-grid.h
+index 3579891..7327e9e 100644
+--- a/src/ui/widget/canvas-grid.h
++++ b/src/ui/widget/canvas-grid.h
+@@ -63,6 +63,10 @@ class CanvasGrid final : public Gtk::Grid
+     using parent_type = Gtk::Grid;
+ 
+ public:
++    /// Hirch CNC: schwebende Werkzeugleiste über der Zeichenfläche
++    void hirch_overlay(Gtk::Widget &w) { _canvas_overlay.add_overlay(w); _hirch_leiste = &w; }
++    /// Hirch CNC: 3D-Ansicht an Stelle der Zeichenfläche (Lineale und Bildlaufleisten solange aus)
++    void hirch_3d(Gtk::Widget *w, bool an);
+     CanvasGrid(SPDesktopWidget *dtw);
+     ~CanvasGrid() final;
+ 
+@@ -108,6 +112,9 @@ private:
+     std::unique_ptr<Dialog::CommandPalette> _command_palette;
+     CanvasNotice *_notice;
+     Gtk::Overlay _canvas_overlay;
++    Gtk::Widget *_hirch_3d = nullptr;           // Hirch CNC: 3D-Ansicht (über der Zeichenfläche)
++    Gtk::Widget *_hirch_leiste = nullptr;       // Hirch CNC: schwebende Farbleiste (in 3D aus)
++    bool _hirch_3d_an = false, _hirch_lineale = true, _hirch_leisten = true;
+     Gtk::Grid _subgrid;
+ 
+     Glib::RefPtr<Gtk::Adjustment> _hadj;
+diff --git a/src/ui/widget/desktop-widget.cpp b/src/ui/widget/desktop-widget.cpp
+index 56647d4..2e0c00d 100644
+--- a/src/ui/widget/desktop-widget.cpp
++++ b/src/ui/widget/desktop-widget.cpp
+@@ -21,6 +21,8 @@
+  * Released under GNU GPL v2+, read the file 'COPYING' for more information.
+  */
+ 
++#include "page-manager.h"  // Hirch CNC: Koordinaten ab Nullpunkt
++#include "ui/dialog/hirch-fraesen.h"  // Hirch CNC: Fräsfarben-Leiste
+ #include "desktop-widget.h"
+ 
+ #include <algorithm>
+@@ -31,6 +33,8 @@
+ #include <gtkmm/adjustment.h>
+ #include <gtkmm/grid.h>
+ #include <gtkmm/label.h>
++#include <gtkmm/button.h>
++#include <gtkmm/separator.h>
+ #include <gtkmm/messagedialog.h>
+ #include <gtkmm/paned.h>
+ #include <gtkmm/widget.h>
+@@ -95,6 +99,7 @@ SPDesktopWidget::SPDesktopWidget(InkscapeWindow *inkscape_window, SPDocument *do
+     _statusbar = Gtk::make_managed<Inkscape::UI::Widget::StatusBar>();
+     Inkscape::UI::pack_end(*this, *_statusbar, false, true);
+ 
++
+     /* Swatch Bar */
+     _panels = Gtk::make_managed<Inkscape::UI::Dialog::SwatchesPanel>(true, "/embedded/swatches");
+     _panels->set_vexpand(false);
+@@ -116,7 +121,34 @@ SPDesktopWidget::SPDesktopWidget(InkscapeWindow *inkscape_window, SPDocument *do
+ 
+     /* Toolboxes */
+     tool_toolbars = Gtk::make_managed<Inkscape::UI::Toolbar::Toolbars>();
+-    _top_toolbars->attach(*tool_toolbars, 0, 1);
++    {
++        // Hirch CNC (Peter, 20.10.): Rückgängig und Wiederholen immer ganz vorne, bei jedem Werkzeug
++        auto zeile = Gtk::make_managed<Gtk::Box>(Gtk::ORIENTATION_HORIZONTAL, 0);
++        zeile->set_name("HirchUndoZeile");
++        auto knopf = [zeile](char const *aktion, char const *symbol, Glib::ustring const &tipp) {
++            auto b = Gtk::make_managed<Gtk::Button>();
++            b->set_relief(Gtk::RELIEF_NONE);
++            b->set_focus_on_click(false);
++            b->set_image_from_icon_name(symbol, Gtk::ICON_SIZE_LARGE_TOOLBAR);
++            b->set_tooltip_text(tipp);
++            gtk_actionable_set_action_name(GTK_ACTIONABLE(b->gobj()), aktion);
++            b->set_valign(Gtk::ALIGN_CENTER);
++            zeile->pack_start(*b, false, false);
++        };
++        knopf("doc.undo", "edit-undo", _("Undo"));
++        knopf("doc.redo", "edit-redo", _("Redo"));
++        auto sep = Gtk::make_managed<Gtk::Separator>(Gtk::ORIENTATION_VERTICAL);
++        sep->set_margin_start(4);
++        sep->set_margin_end(4);
++        zeile->pack_start(*sep, false, false);
++        zeile->pack_start(*tool_toolbars, true, true);
++        zeile->show_all();
++        tool_toolbars->set_visible(true);
++        _top_toolbars->attach(*zeile, 0, 1);
++    }
++    // Hirch CNC: Umschalter «2D Zeichnung | 3D Ansicht» über den Werkzeugleisten
++    // (eigene Zeile über _top_toolbars: dort zählt repack_snaptoolbar die Kinder)
++    if (auto ansicht = Inkscape::UI::Dialog::hirch_ansicht_zeile(this)) Inkscape::UI::pack_end(*this, *ansicht, false, true);
+ 
+     tool_toolbox = Gtk::make_managed<Inkscape::UI::Toolbar::ToolToolbar>(inkscape_window);
+     _tbbox->pack1(*tool_toolbox, false, false);
+@@ -162,6 +194,12 @@ SPDesktopWidget::SPDesktopWidget(InkscapeWindow *inkscape_window, SPDocument *do
+     /* Canvas Grid (canvas, rulers, scrollbars, etc.) */
+     // desktop widgets owns it
+     _canvas_grid = std::make_unique<Inkscape::UI::Widget::CanvasGrid>(this);
++    /* Hirch CNC: schwebende Werkzeugleiste (Ansicht, Werkzeuge, Fräsfarben) rechts auf der Zeichenfläche */
++    {
++        auto fl = Gtk::make_managed<Inkscape::UI::Dialog::HirchFarbleiste>();
++        _farbleiste = fl;
++        _canvas_grid->hirch_overlay(*fl);
++    }
+ 
+     /* Canvas */
+     _canvas = _canvas_grid->GetCanvas();
+@@ -206,6 +244,7 @@ SPDesktopWidget::SPDesktopWidget(InkscapeWindow *inkscape_window, SPDocument *do
+     init_avoided_shape_geometry(_desktop.get());
+ 
+     _statusbar->set_desktop(_desktop.get());
++    if (auto fl = dynamic_cast<Inkscape::UI::Dialog::HirchFarbleiste *>(_farbleiste)) fl->setDesktop(_desktop.get());
+ 
+     /* Once desktop is set, we can update rulers */
+     _canvas_grid->updateRulers();
+@@ -229,6 +268,7 @@ void SPDesktopWidget::apply_ctrlbar_settings() {
+     Inkscape::UI::set_icon_sizes(snap_toolbar, size);
+     Inkscape::UI::set_icon_sizes(command_toolbar, size);
+     Inkscape::UI::set_icon_sizes(tool_toolbars, size);
++    if (auto zeile = tool_toolbars->get_parent()) Inkscape::UI::set_icon_sizes(zeile, size);   // Hirch: Rückgängig
+ }
+ 
+ void
+@@ -254,6 +294,7 @@ SPDesktopWidget::on_unrealize()
+         _canvas->set_desktop(nullptr); // Todo: Remove desktop dependency.
+ 
+         _panels->setDesktop(nullptr);
++        if (auto fl = dynamic_cast<Inkscape::UI::Dialog::HirchFarbleiste *>(_farbleiste)) fl->setDesktop(nullptr);
+ 
+         _container.reset(); // will unrealize _canvas
+ 
+@@ -295,17 +336,23 @@ SPDesktopWidget::updateTitle(gchar const* uri)
+         Name += " (";
+ 
+         auto const canvas = _desktop->getCanvas();
++        // Hirch CAM (Windows 07.11.): die Anzeigemodi übersetzt im Titel, ohne Unterstrich der Menütaste
++        auto uebersetzt = [](char const *t) {
++            Glib::ustring u = _(t), aus;
++            for (auto c : u) if (c != '_') aus += c;
++            return aus;
++        };
+         auto const render_mode = canvas->get_render_mode();
+         auto const color_mode  = canvas->get_color_mode();
+ 
+         if (render_mode == Inkscape::RenderMode::OUTLINE) {
+-            Name += N_("outline");
++            Name += uebersetzt("outline");
+         } else if (render_mode == Inkscape::RenderMode::NO_FILTERS) {
+-            Name += N_("no filters");
++            Name += uebersetzt("no filters");
+         } else if (render_mode == Inkscape::RenderMode::VISIBLE_HAIRLINES) {
+-            Name += N_("enhance thin lines");
++            Name += uebersetzt("enhance thin lines");
+         } else if (render_mode == Inkscape::RenderMode::OUTLINE_OVERLAY) {
+-            Name += N_("outline overlay");
++            Name += uebersetzt("outline overlay");
+         }
+ 
+         if (color_mode != Inkscape::ColorMode::NORMAL &&
+@@ -314,9 +361,9 @@ SPDesktopWidget::updateTitle(gchar const* uri)
+         }
+ 
+         if (color_mode == Inkscape::ColorMode::GRAYSCALE) {
+-            Name += N_("grayscale");
++            Name += uebersetzt("grayscale");
+         } else if (color_mode == Inkscape::ColorMode::PRINT_COLORS_PREVIEW) {
+-            Name += N_("print colors preview");
++            Name += uebersetzt("print colors preview");
+         }
+ 
+         if (*Name.rbegin() == '(') {  // Can not use C++11 .back() or .pop_back() with ustring!
+@@ -325,7 +372,7 @@ SPDesktopWidget::updateTitle(gchar const* uri)
+             Name += ")";
+         }
+ 
+-        Name += " - Inkscape";
++        Name += " – Hirch CAM";
+ 
+         // Name += " (";
+         // Name += Inkscape::version_string;
+@@ -423,6 +470,11 @@ SPDesktopWidget::disableInteraction()
+ void
+ SPDesktopWidget::setCoordinateStatus(Geom::Point p)
+ {
++    // Hirch CNC: Koordinaten ab dem Nullpunkt der Maschine (wie die Lineale)
++    if (auto d = get_desktop(); d && d->getDocument() &&
++        Inkscape::Preferences::get()->getBool("/options/origincorrection/page", true)) {
++        p *= d->getDocument()->getPageManager().getSelectedPageAffine().inverse();
++    }
+     _statusbar->set_coordinate(_dt2r * p);
+ }
+ 
+@@ -614,11 +666,8 @@ void SPDesktopWidget::layoutWidgets()
+     }
+     _statusbar->update_visibility(); // Individual items in bar
+ 
+-    if (!prefs->getBool(pref_root + "panels/state", true)) {
+-        _panels->set_visible(false);
+-    } else {
+-        _panels->show_all();
+-    }
++    // Hirch CNC: die Farbfelder-Leiste ist durch die beschrifteten Fräsfarben ersetzt
++    _panels->set_visible(false);
+ 
+     _canvas_grid->ShowScrollbars(prefs->getBool(pref_root + "scrollbars/state", true));
+     _canvas_grid->ShowRulers(    prefs->getBool(pref_root + "rulers/state",     true));
+diff --git a/src/ui/widget/desktop-widget.h b/src/ui/widget/desktop-widget.h
+index 31c37c2..3c7d971 100644
+--- a/src/ui/widget/desktop-widget.h
++++ b/src/ui/widget/desktop-widget.h
+@@ -129,6 +129,7 @@ private:
+     Gtk::Grid* _top_toolbars = nullptr;
+ 
+     Inkscape::UI::Widget::StatusBar    *_statusbar = nullptr;
++    Gtk::Widget                        *_farbleiste = nullptr;   // Hirch CNC: beschriftete Fräsfarben
+     Inkscape::UI::Dialog::SwatchesPanel *_panels;
+ 
+     /** A grid to display the canvas, rulers, and scrollbars. */
+diff --git a/src/ui/widget/page-selector.cpp b/src/ui/widget/page-selector.cpp
+index 0081b67..6942a6f 100644
+--- a/src/ui/widget/page-selector.cpp
++++ b/src/ui/widget/page-selector.cpp
+@@ -115,7 +115,8 @@ void PageSelector::pagesChanged()
+     }
+ 
+     // Hide myself when there's no pages (single page document)
+-    this->set_visible(page_manager.hasPages());
++    // Hirch CNC: Seiten wählt man im Fräs-Panel (Seite 1/2, Platte, Vorrichtung)
++    this->set_visible(false);
+ 
+     // Add in pages, do not use getResourcelist("page") because the items
+     // are not guaranteed to be in node order, they are in first-seen order.
+diff --git a/src/ui/widget/status-bar.cpp b/src/ui/widget/status-bar.cpp
+index 08e1b9a..18d914e 100644
+--- a/src/ui/widget/status-bar.cpp
++++ b/src/ui/widget/status-bar.cpp
+@@ -41,6 +41,7 @@ StatusBar::StatusBar()
+     auto builder = Inkscape::UI::create_builder("statusbar.ui");
+ 
+     auto &statusbar = UI::get_widget<Gtk::Box>(builder, "statusbar");
++    _innen = &statusbar;
+ 
+     // selected_style = &UI::get_widget_derived<UI::Widget::SpinButton>(builder, "statusbar-selected-style");
+     // layer_selector = &UI::get_widget_derived<UI::Widget::SpinButton>(builder, "statusbar-layer-selector");
+@@ -322,10 +323,20 @@ StatusBar::update_visibility()
+     auto prefs = Inkscape::Preferences::get();
+     Glib::ustring path("/statusbar/visibility/");
+ 
+-    layer_selector->set_visible(prefs->getBool(path + "layer",       true));
+-    selected_style->set_visible(prefs->getBool(path + "style",       true));
++    // Hirch CNC: schlanke Leiste – nur Meldung und X/Y
++    layer_selector->set_visible(false);
++    selected_style->set_visible(false);
+     coordinates->set_visible(   prefs->getBool(path + "coordinates", true));
+-    rotate->set_visible(        prefs->getBool(path + "rotation",    true));
++    rotate->set_visible(false);
++    zoom->set_visible(false);
++    if (_page_selector) _page_selector->set_visible(false);
++}
++
++void StatusBar::hirch_links(Gtk::Widget &w)
++{
++    if (!_innen) return;
++    UI::pack_start(*_innen, w, false, false);
++    _innen->reorder_child(w, 0);
+ }
+ 
+ } // namespace Inkscape::UI::Widget
+diff --git a/src/ui/widget/status-bar.h b/src/ui/widget/status-bar.h
+index 9f9ab96..3db8c91 100644
+--- a/src/ui/widget/status-bar.h
++++ b/src/ui/widget/status-bar.h
+@@ -56,6 +56,8 @@ public:
+ 
+     void rotate_grab_focus();
+     void zoom_grab_focus();
++    /// Hirch CNC: Widget ganz links in die Leiste (Fräsfarben)
++    void hirch_links(Gtk::Widget &w);
+ 
+ private:
+     int zoom_input(double *new_value);
+@@ -69,6 +71,7 @@ private:
+     void rotate_menu_handler();
+     bool rotate_popup(PopupMenuOptionalClick);
+ 
++    Gtk::Box *_innen = nullptr;       // Hirch CNC: die eigentliche Leiste
+     // From left to right
+     SelectedStyle* selected_style = nullptr;
+     LayerSelector* layer_selector = nullptr;

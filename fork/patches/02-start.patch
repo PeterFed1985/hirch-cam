@@ -1,0 +1,539 @@
+diff --git a/src/inkscape-application.cpp b/src/inkscape-application.cpp
+index bf1d8ac..885b9ed 100644
+--- a/src/inkscape-application.cpp
++++ b/src/inkscape-application.cpp
+@@ -118,6 +118,7 @@
+ #ifdef ENABLE_NLS
+ // Native Language Support - shouldn't this always be used?
+ #include "helper/gettext.h"   // gettext init
++#include "ui/dialog/hirch-fraesen.h"  // Hirch CAM: Zusatzformate
+ #endif // ENABLE_NLS
+ 
+ #ifdef WITH_GNU_READLINE
+@@ -181,6 +182,11 @@ InkscapeApplication::document_new(const std::string &Template)
+ SPDocument*
+ InkscapeApplication::document_open(const Glib::RefPtr<Gio::File>& file, bool *cancelled)
+ {
++    // Hirch CAM: Zusatzformate öffnet das Fräsen-Panel (umgewandelt, in einem neuen Fenster)
++    if (file && !file->get_path().empty() && hirch_zusatz_oeffnen(file->get_path())) {
++        if (cancelled) *cancelled = true;
++        return nullptr;
++    }
+     // Open file
+     SPDocument *document = ink_file_open(file, cancelled);
+ 
+@@ -214,6 +220,7 @@ InkscapeApplication::document_open(const Glib::RefPtr<Gio::File>& file, bool *ca
+         }
+ 
+         document_add (document);
++        hirch_nach_oeffnen(file->get_path(), document);  // Hirch CAM: AI/PDF nur die Linien
+     } else if (cancelled == nullptr || !(*cancelled)) {
+         std::cerr << "InkscapeApplication::document_open: Failed to open: " << file->get_parse_name().raw() << std::endl;
+     }
+@@ -611,7 +618,7 @@ InkscapeApplication::InkscapeApplication()
+ 
+     using T = Gio::Application;
+ 
+-    auto app_id = Glib::ustring("org.inkscape.Inkscape");
++    auto app_id = Glib::ustring("net.hirch.HirchCAM");
+     auto flags = Gio::APPLICATION_HANDLES_OPEN | // Use default file opening.
+                  Gio::APPLICATION_CAN_OVERRIDE_APP_ID;
+     auto non_unique = false;
+@@ -1089,7 +1096,20 @@ InkscapeApplication::on_startup()
+     gapp->add_action("quit",   sigc::mem_fun(*this, &InkscapeApplication::on_quit  ));
+ 
+     // ========================= GUI Init =========================
+-    Gtk::Window::set_default_icon_name("org.inkscape.Inkscape");
++    Gtk::Window::set_default_icon_name("hirch-cam");
++    // Hirch CAM: das Symbol auch direkt aus der Datei – sonst zeigt die Taskleiste ein Zahnrad, wenn das Symbol nicht im
++    // Symbolthema liegt (AppImage, Peter 12.11.: «das Programmsymbol wird nicht angezeigt»)
++    try {
++        auto datei = Inkscape::IO::Resource::get_path_string(Inkscape::IO::Resource::SYSTEM,
++                                                             Inkscape::IO::Resource::ICONS,
++                                                             "hicolor/scalable/apps/hirch-cam.svg");
++        if (!datei.empty() && Glib::file_test(datei, Glib::FILE_TEST_EXISTS)) {
++            std::vector<Glib::RefPtr<Gdk::Pixbuf>> bilder;
++            for (int g : {16, 32, 48, 64, 128, 256}) bilder.push_back(Gdk::Pixbuf::create_from_file(datei, g, g, true));
++            Gtk::Window::set_default_icon_list(bilder);
++        }
++    } catch (Glib::Error const &) {
++    }
+ 
+     // build_menu(); // Builds and adds menu to app. Used by all Inkscape windows. This can be done
+                      // before all actions defined. * For the moment done by each window so we can add
+@@ -1115,6 +1135,22 @@ InkscapeApplication::on_activate()
+     }
+ #endif
+ 
++    // Hirch CNC (Windows 01.11.): läuft Hirch CNC schon, holt ein weiterer Start ohne Datei (Klick aufs Programmsymbol)
++    // das offene Fenster nach vorn, statt ein leeres neues zu öffnen. «Datei › Neu» läuft nicht hier durch.
++    if (_with_gui && !_use_pipe && !_use_command_line_argument && gtk_app()) {
++        Gtk::Window *zuletzt = nullptr;
++        for (auto window : gtk_app()->get_windows()) {      // zuletzt benutzte zuerst
++            if (dynamic_cast<InkscapeWindow *>(window)) {
++                zuletzt = window;
++                break;
++            }
++        }
++        if (zuletzt) {
++            zuletzt->present();
++            return;
++        }
++    }
++
+     std::string output;
+     auto prefs = Inkscape::Preferences::get();
+ 
+diff --git a/src/inkscape-main.cpp b/src/inkscape-main.cpp
+index c9880ca..83719f9 100644
+--- a/src/inkscape-main.cpp
++++ b/src/inkscape-main.cpp
+@@ -21,6 +21,7 @@
+ 
+ #include "inkscape-application.h"
+ #include "path-prefix.h"
++#include "ui/hirch-start-win32.h"
+ 
+ #include "io/resource.h"
+ 
+@@ -104,6 +105,7 @@ static void set_win32_env()
+     // - is likely to become the default at some point, see
+     //     https://discourse.gnome.org/t/can-should-we-use-the-experimental-win32-ole2-dnd-implementation/4062
+     Glib::setenv("GDK_WIN32_USE_EXPERIMENTAL_OLE2_DND", "1");
++    hirch_win32_start(); // Hirch CNC: Sprache, Profil, Rechenkern, Grafik (ui/hirch-start-win32.cpp)
+ }
+ #endif
+ 
+@@ -204,6 +206,13 @@ int main(int argc, char *argv[])
+     fflush(stdout); // empty buffer, just to be safe (see warning in documentation for _setmode)
+     _setmode(_fileno(stdout), _O_BINARY); // binary mode seems required for this to work properly
+ #endif
++#ifndef _WIN32
++    // Hirch CNC: eigenes Profil auch ohne Starter (bin/inkscape direkt) – nie das Profil eines
++    // normalen Inkscape auf demselben Rechner benutzen
++    if (Glib::getenv("INKSCAPE_PROFILE_DIR").empty()) {
++        Glib::setenv("INKSCAPE_PROFILE_DIR", Glib::build_filename(Glib::get_user_config_dir(), "hirch-cam", "profil"));
++    }
++#endif
+ 
+ #if defined(GDK_WINDOWING_X11)
+     // The XIM input method can cause graphical artifacts.
+@@ -226,6 +235,10 @@ int main(int argc, char *argv[])
+     }
+ #endif
+ 
++    // Hirch CNC: eigener Programmname und Fensterklasse (passend zum Starter)
++    g_set_prgname("hirch-cam");
++    gdk_set_program_class("hirch-cam");
++
+     set_xdg_env();
+     set_themes_env();
+     set_extensions_env();
+diff --git a/src/inkscape-window.cpp b/src/inkscape-window.cpp
+index 857d15d..957f02c 100644
+--- a/src/inkscape-window.cpp
++++ b/src/inkscape-window.cpp
+@@ -43,6 +43,7 @@
+ #include "actions/actions-tools.h"
+ #include "actions/actions-transform.h"
+ #include "actions/actions-view-mode.h"
++#include "ui/dialog/hirch-fraesen.h"
+ #include "actions/actions-view-window.h"
+ #include "object/sp-namedview.h"  // TODO Remove need for this!
+ #include "ui/desktop/menubar.h"
+@@ -105,6 +106,7 @@ InkscapeWindow::InkscapeWindow(SPDocument* document)
+     add_actions_transform(this);            // Actions for transforming against the screen zoom
+     add_actions_view_mode(this);            // Actions to change how Inkscape canvas is displayed.
+     add_actions_view_window(this);          // Actions to add/change window of Inkscape
++    add_actions_hirch(this);                // Hirch CNC: Menü «Fräsen»
+ 
+     // Add document action group to window and export to DBus.
+     add_document_actions();
+diff --git a/src/inkscape.cpp b/src/inkscape.cpp
+index ae8d694..b6d4565 100644
+--- a/src/inkscape.cpp
++++ b/src/inkscape.cpp
+@@ -459,9 +459,9 @@ Application::crash_handler (int /*signum*/)
+     // do not save the preferences since they can be in a corrupted state
+     Inkscape::Preferences::unload(false);
+ 
+-    fprintf (stderr, "Emergency save completed. Inkscape will close now.\n");
+-    fprintf (stderr, "If you can reproduce this crash, please file a bug at https://inkscape.org/report\n");
+-    fprintf (stderr, "with a detailed description of the steps leading to the crash, so we can fix it.\n");
++    fprintf (stderr, "Emergency save completed. Hirch CAM will close now.\n");
++    fprintf (stderr, "If you can reproduce this crash, please send the steps leading to it\n");
++    fprintf (stderr, "and this output to the Hirch CAM developers, so we can fix it.\n");
+ 
+     /* Show nice dialog box */
+ 
+diff --git a/src/preferences-skeleton.h b/src/preferences-skeleton.h
+index 395b945..11f32b8 100644
+--- a/src/preferences-skeleton.h
++++ b/src/preferences-skeleton.h
+@@ -27,7 +27,7 @@ static char const preferences_skeleton[] =
+ <inkscape version="1">
+   <group id="window">
+     <group id="menu"        state="1"/>
+-    <group id="commands"    state="1"/>
++    <group id="commands"    state="0"/>
+     <group id="snaptoolbox" state="1"/>
+     <group id="toppanel"    state="1"/>
+     <group id="toolbox"     state="1"/>
+@@ -74,10 +74,10 @@ static char const preferences_skeleton[] =
+        pageshadow="2" />
+   </group>
+ 
+-  <group id="tools" bounding_box="0">
++  <group id="tools" bounding_box="1">
+ 
+     <group id="shapes" style="fill-rule:evenodd;" selcue="1" gradientdrag="1">
+-      <eventcontext id="rect" style="fill:blue;" usecurrent="1"/>
++      <eventcontext id="rect" style="fill:none;stroke:#000000;stroke-width:0.5mm;" usecurrent="0"/>
+       <eventcontext id="3dbox" style="stroke:none;stroke-linejoin:round;" usecurrent="1">
+         <side id="XYfront"  style="fill:#8686bf;stroke:none;stroke-linejoin:round;" usecurrent="0"/>
+         <side id="XYrear"   style="fill:#e9e9ff;stroke:none;stroke-linejoin:round;" usecurrent="0"/>
+@@ -86,15 +86,15 @@ static char const preferences_skeleton[] =
+         <side id="YZright"  style="fill:#353564;stroke:none;stroke-linejoin:round;" usecurrent="0"/>
+         <side id="YZleft"   style="fill:#d7d7ff;stroke:none;stroke-linejoin:round;" usecurrent="0"/>
+       </eventcontext>
+-      <eventcontext id="arc" style="fill:red;" end="0" start="0" usecurrent="1"/>
+-      <eventcontext id="star" magnitude="5" style="fill:yellow;" usecurrent="1"/>
++      <eventcontext id="arc" style="fill:none;stroke:#000000;stroke-width:0.5mm;" end="0" start="0" usecurrent="0"/>
++      <eventcontext id="star" magnitude="5" style="fill:none;stroke:#000000;stroke-width:0.5mm;" usecurrent="0"/>
+       <eventcontext id="spiral" style="fill:none;stroke:black" expansion="1" usecurrent="0"/>
+     </group>
+ 
+     <group id="freehand"
+          style="fill:none;stroke:black;stroke-opacity:1;stroke-linejoin:miter;stroke-linecap:butt;">
+-      <eventcontext id="pencil" tolerance="15.0" selcue="1" style="stroke-width:1px;" usecurrent="1" average_all_sketches="1"/>
+-      <eventcontext id="pen" mode="drag" selcue="1" style="stroke-width:1px;" usecurrent="1"/>
++      <eventcontext id="pencil" tolerance="15.0" selcue="1" style="fill:none;stroke:#000000;stroke-width:0.5mm;" usecurrent="0" average_all_sketches="1"/>
++      <eventcontext id="pen" mode="drag" selcue="1" style="fill:none;stroke:#000000;stroke-width:0.5mm;" usecurrent="0"/>
+     </group>
+ 
+     <eventcontext id="calligraphic" style="fill:black;fill-opacity:1;fill-rule:nonzero;stroke:none;"
+@@ -111,18 +111,18 @@ static char const preferences_skeleton[] =
+       </group>
+     </eventcontext>
+ 
+-    <eventcontext id="eraser" mode="1" style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;"
++    <eventcontext id="eraser" mode="1" style="fill:none;stroke:#000000;stroke-width:0.5mm;"
+                        mass="3.00" drag="1" angle="30" width="10" thinning="0.1" flatness="0.0" cap_rounding="1.4" usecurrent="0"
+                        tracebackground="0" usepressure="1" usetilt="0" selcue="1">
+     </eventcontext>
+ 
+-    <eventcontext id="lpetool" mode="drag" style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none;">
++    <eventcontext id="lpetool" mode="drag" style="fill:none;stroke:#000000;stroke-width:0.5mm;">
+     </eventcontext>
+ 
+-    <eventcontext id="text"  usecurrent="1" gradientdrag="1"
++    <eventcontext id="text"  usecurrent="0" gradientdrag="1"
+                        font_sample="AaBbCcIiPpQq12369$€¢?.;/()"
+                        show_sample_in_list="1" use_svg2="1"
+-                  style="fill:black;fill-opacity:1;line-height:1.25;stroke:none;font-family:sans-serif;font-style:normal;font-weight:normal;font-size:40px;" selcue="1"/>
++                  style="fill:none;stroke:#000000;stroke-width:0.5mm;stroke-linejoin:round;stroke-linecap:round;line-height:1.6;font-family:'Hershey Sans';font-style:normal;font-weight:normal;font-size:37.795276px;" selcue="1"/>
+ 
+     <eventcontext id="nodes" selcue="1" gradientdrag="1" changelayer="0" changepage="0"
+       pathflash_enabled="1" pathflash_unselected="0" pathflash_timeout="500" show_handles="1" show_outline="0"
+@@ -207,7 +207,7 @@ static char const preferences_skeleton[] =
+       panel_mode="1"
+       panel_ratio="100"
+       panel_wrap="0"
+-      palette="Inkscape default">
++      palette="Hirch CAM Fräsfarben">
+       <group id="pinned"
+          none="1"
+          rgb000000="1" black="1"
+@@ -222,7 +222,7 @@ static char const preferences_skeleton[] =
+     <group id="filtereffects"/>
+     <group id="textandfont"/>
+     <group id="transformation" applyseparately="0"/>
+-    <group id="align"/>
++    <group id="align" objects-align-to="page"/>
+     <group id="xml" h="500" w="300" />
+     <group id="find"/>
+     <group id="spellcheck" w="200" h="250" ignorenumbers="1"/>
+@@ -243,7 +243,7 @@ static char const preferences_skeleton[] =
+     <group id="extension-error" show-on-startup="0"/>
+     <group id="memory" />
+     <group id="messages" />
+-    <group id="swatches" palette="Auto"/>
++    <group id="swatches" palette="Hirch CAM Fräsfarben"/>
+     <group id="iconpreview" />
+     <group id="aboutextensions" />
+     <group id="treeeditor" />
+@@ -260,7 +260,11 @@ static char const preferences_skeleton[] =
+   </group>
+ 
+   <group id="options"
++    yaxisdown="0"
+      rotationlock="1">
++    <group id="snapping" snap-global-toggle="1" snap-path-intersection="1" snap-bbox-center="1"
++           snap-bbox-edge-midpoint="1" snap-object-midpoint="1" snap-alignment="1" snap-distribution="1"
++           simple-snap-alignment="1" snap-page-border="1" snap-grid="0" snap-grid-line="0"/>
+     <group id="renderingcache" size="512" />
+     <group id="useoldpdfexporter" value="0" />
+     <group id="highlightoriginal" value="1" />
+@@ -288,6 +292,8 @@ static char const preferences_skeleton[] =
+        gamutwarn="0"
+        bpc="0"
+        uri="" />
++    <!-- Hirch CAM: unter Windows die Datei-Dialoge von Windows (deutsche Ordnernamen) -->
++    <group id="desktopintegration" value="1"/>
+     <group id="savewindowgeometry" value="1"/>
+     <group id="defaultoffsetwidth" value="2px"/>
+     <group id="defaultscale" value="2px"/>
+@@ -318,7 +324,7 @@ static char const preferences_skeleton[] =
+     <group id="cloneorphans" value="0"/>
+     <group id="stickyzoom" value="0"/>
+     <group id="selcue" value="2"/>
+-    <group id="transform" stroke="1" rectcorners="1" pattern="1" gradient="1" />
++    <group id="transform" stroke="0" rectcorners="1" pattern="1" gradient="1" />
+     <group id="dash" scale="1" />
+     <group id="kbselection" inlayer="1" onlyvisible="1" onlysensitive="1" />
+     <group id="selection" layerdeselect="1" />
+@@ -395,9 +401,11 @@ static char const preferences_skeleton[] =
+            partialdynamic="0"/>
+     <group
+        id="font"
+-       unitType="2" />
++       unitType="4" />
+     <group
+        id="boot"
++       showsplash="0"
++       showwelcome="0"
+        theme="colorful" />
+   </group>
+ 
+@@ -408,7 +416,7 @@ static char const preferences_skeleton[] =
+      org.inkscape.output.png.inkscape.png_antialias="2" />
+ 
+   <group id="desktop"
+-         style="fill:#000000">
++         style="fill:none;stroke:#000000;stroke-width:0.5mm">
+     <group
+        width="640"
+        height="480"
+@@ -446,8 +454,7 @@ static char const preferences_skeleton[] =
+        small="0"
+        iconsize="16">
+       <group
+-         id="buttons" 
+-         showLPETool="0"/>
++         id="buttons" showBooleans="0" show3DBox="0" showSpiral="0" showPencil="0" showCalligraphic="0" showGradient="0" showMesh="0" showDropper="0" showPaintBucket="0" showTweak="0" showSpray="0" showEraser="0" showConnector="0" showLPETool="0" showZoom="0" showPages="0" />
+     </group>
+     <group
+        id="controlbars"
+diff --git a/src/ui/desktop/menubar.cpp b/src/ui/desktop/menubar.cpp
+index 8275339..b0a7034 100644
+--- a/src/ui/desktop/menubar.cpp
++++ b/src/ui/desktop/menubar.cpp
+@@ -83,12 +83,8 @@ build_menu()
+             auto effects_menu = Glib::RefPtr<Gio::Menu>::cast_dynamic(effects_object);
+             auto filters_menu = Glib::RefPtr<Gio::Menu>::cast_dynamic(filters_object);
+ 
+-            if (!filters_menu) {
+-                std::cerr << "build_menu(): Couldn't find Filters menu entry!" << std::endl;
+-            }
+-            if (!effects_menu) {
+-                std::cerr << "build_menu(): Couldn't find Extensions menu entry!" << std::endl;
+-            }
++            // Hirch CNC: kein Filter-Menü
++            // Hirch CNC: kein Erweiterungen-Menü (Erweiterungen bleiben als Aktionen da)
+ 
+             std::map<Glib::ustring, Glib::RefPtr<Gio::Menu>> submenus;
+ 
+@@ -106,8 +102,7 @@ build_menu()
+                     path += "Filters";
+                 }
+ 
+-                if (!top_menu) { // It's possible that the menu doesn't exist (Kid's Inkscape?)
+-                    std::cerr << "build_menu(): menu doesn't exist!" << std::endl; // Warn for now.
++                if (!top_menu) { // Hirch CNC: Filter-Menü gibt es nicht
+                     continue;
+                 }
+ 
+diff --git a/src/ui/dialog/dialog-base.cpp b/src/ui/dialog/dialog-base.cpp
+index a530db9..3e40a2c 100644
+--- a/src/ui/dialog/dialog-base.cpp
++++ b/src/ui/dialog/dialog-base.cpp
+@@ -37,6 +37,9 @@
+ 
+ namespace Inkscape::UI::Dialog {
+ 
++std::function<bool(DialogBase &)> hirch_dialog_escape;   // Hirch CAM: hirch-leiste.cpp setzt ihn
++
++
+ static void remove_first(Glib::ustring &name, Glib::ustring const &pattern)
+ {
+     if (auto const pos = name.find(pattern); pos != name.npos) {
+@@ -115,6 +118,8 @@ gboolean DialogBase::on_window_key_pressed(GtkEventControllerKey const * const c
+ 
+     switch (Inkscape::UI::Tools::get_latin_keyval(controller, keyval, keycode, state)) {
+         case GDK_KEY_Escape:
++            // Hirch CAM (Seitenleiste ohne Reiter): Escape führt zurück zu Fräsen, wenn die Leiste das will
++            if (hirch_dialog_escape && hirch_dialog_escape(*this)) return true;
+             defocus_dialog();
+             return true;
+     }
+diff --git a/src/ui/dialog/dialog-base.h b/src/ui/dialog/dialog-base.h
+index d8f4c4d..b02264e 100644
+--- a/src/ui/dialog/dialog-base.h
++++ b/src/ui/dialog/dialog-base.h
+@@ -13,6 +13,7 @@
+ #ifndef INK_DIALOG_BASE_H
+ #define INK_DIALOG_BASE_H
+ 
++#include <functional>
+ #include <glibmm/ustring.h>
+ #include <gtk/gtk.h> // GtkEventControllerKey
+ #include <gtkmm/box.h>
+@@ -121,6 +122,9 @@ private:
+     Selection  *selection = nullptr;
+ };
+ 
++/// Hirch CAM: Escape in einem Fenster der Spalte – true: erledigt (zurück zu Fräsen), sonst wie Inkscape
++extern std::function<bool(DialogBase &)> hirch_dialog_escape;
++
+ } // namespace Inkscape::UI::Dialog
+ 
+ #endif // INK_DIALOG_BASE_H
+diff --git a/src/ui/dialog/dialog-container.cpp b/src/ui/dialog/dialog-container.cpp
+index fad6350..72f97f7 100644
+--- a/src/ui/dialog/dialog-container.cpp
++++ b/src/ui/dialog/dialog-container.cpp
+@@ -11,6 +11,7 @@
+  */
+ 
+ #include "dialog-container.h"
++#include "ui/dialog/hirch-erlaubt.h"
+ 
+ #include <iostream>
+ #include <glibmm/i18n.h>
+@@ -36,6 +37,9 @@
+ #include "ui/dialog/dialog-window.h"
+ #include "ui/dialog/document-properties.h"
+ #include "ui/dialog/document-resources.h"
++#include <set>
++#include "ui/dialog/hirch-fraesen.h"
++#include "ui/dialog/hirch-3d.h"
+ #include "ui/dialog/export.h"
+ #include "ui/dialog/extensions-gallery.h"
+ #include "ui/dialog/fill-and-stroke.h"
+@@ -120,12 +124,19 @@ void DialogContainer::setup_drag_and_drop(DialogMultipaned * const column)
+  */
+ std::unique_ptr<DialogBase> DialogContainer::dialog_factory(Glib::ustring const &dialog_type)
+ {
++    // Hirch CAM: nur Fenster aus der zentralen Liste (hirch-erlaubt.cpp)
++    if (!HirchErlaubt::fenster(dialog_type.raw())) return nullptr;
++
+     // clang-format off
+          if (dialog_type == "AlignDistribute")    return std::make_unique<ArrangeDialog>();
+     else if (dialog_type == "CloneTiler")         return std::make_unique<CloneTiler>();
+     else if (dialog_type == "DocumentProperties") return std::make_unique<DocumentProperties>();
+     else if (dialog_type == "DocumentResources")  return std::make_unique<DocumentResources>();
+     else if (dialog_type == "Export")             return std::make_unique<Export>();
++    else if (dialog_type == "Fraesen")            return std::make_unique<HirchFraesen>();
++    else if (dialog_type == "HirchAnsicht")       return std::make_unique<HirchAnsicht>();
++    else if (dialog_type == "HirchWerkzeuge")     return std::make_unique<HirchWerkzeuge>();
++    else if (dialog_type == "Hirch3D")            return std::make_unique<Hirch3D>();
+     else if (dialog_type == "ExtensionsGallery")  return std::make_unique<ExtensionsGallery>(ExtensionsGallery::Effects);
+     else if (dialog_type == "FillStroke")         return std::make_unique<FillAndStroke>();
+     else if (dialog_type == "FilterEffects")      return std::make_unique<FilterEffectsDialog>();
+@@ -754,6 +765,10 @@ void DialogContainer::load_container_state(Glib::KeyFile *keyfile, bool include_
+                 DialogNotebook *notebook = nullptr;
+                 if (is_dockable) {
+                     notebook = Gtk::make_managed<DialogNotebook>(active_container);
++                    // Hirch CAM (Windows a391aa9 Fund 1): die angedockte Spalte zeigt keine Reiter (hirch-leiste.cpp).
++                    // Schon beim Laden ausblenden – sonst verlangt die Reiterleiste vieler Fenster Breite, die Spalte
++                    // wird breiter, und diese Breite wird gespeichert: bei jedem Start ein Stück mehr.
++                    if (auto nb = notebook->get_notebook()) nb->set_show_tabs(false);
+                     column->append(*notebook);
+                 }
+ 
+diff --git a/src/ui/dialog/dialog-data.cpp b/src/ui/dialog/dialog-data.cpp
+index c9b1541..a0a321f 100644
+--- a/src/ui/dialog/dialog-data.cpp
++++ b/src/ui/dialog/dialog-data.cpp
+@@ -25,41 +25,31 @@ std::map<std::string, DialogData> const &get_dialog_data()
+     // "Selectors" dialog. Also note that the "AttrDialog" does not correspond to SP_VERB_DIALOG_ATTR!!!
+     // (That would be the "ObjectAttributes" dialog.)
+ 
++    // Hirch CNC: nur, was beim Fräsen hilft (Peter, 20.10.) – Füllung und Kontur, Farbfelder, Filter,
++    // Klone, Schrift-Editoren, CSS, Erweiterungsgalerie, Rechtschreibung, Symbolvorschau, Speicher und der
++    // frühere Reiter «Werkzeuge» sind weg (auch aus alten Fensteranordnungen, siehe dialog_factory)
+     if (dialog_data.empty()) {
+         dialog_data = {
+         // clang-format off
+     {"AlignDistribute",    {_("_Align and Distribute"), INKSCAPE_ICON("dialog-align-and-distribute"), DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+-    {"CloneTiler",         {_("Create Tiled Clones"),   INKSCAPE_ICON("dialog-tile-clones"),          DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+     {"DocumentProperties", {_("_Document Properties"),  INKSCAPE_ICON("document-properties"),         DialogData::Settings,       ScrollProvider::NOPROVIDE }},
+-    {"DocumentResources",  {_("_Document Resources"),   INKSCAPE_ICON("document-resources"),          DialogData::Advanced,       ScrollProvider::NOPROVIDE }},
+     {"Export",             {_("_Export"),               INKSCAPE_ICON("document-export"),             DialogData::Basic,          ScrollProvider::PROVIDE   }},
+-    {"ExtensionsGallery",  {_("_Extension Gallery"),   INKSCAPE_ICON("dialog-extensions"),           DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+-    {"FillStroke",         {_("_Fill and Stroke"),      INKSCAPE_ICON("dialog-fill-and-stroke"),      DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+-    {"FilterEffects",      {_("Filter _Editor"),        INKSCAPE_ICON("dialog-filters"),              DialogData::Advanced,       ScrollProvider::NOPROVIDE }},
+-    {"FilterGallery",      {_("Filter Gallery"),        INKSCAPE_ICON("color-filters"),               DialogData::Advanced,       ScrollProvider::NOPROVIDE }},
++    {"Fraesen",            {_("Machining"),                   INKSCAPE_ICON("hirch-fraesen"),               DialogData::Basic,          ScrollProvider::PROVIDE   }},
++    {"HirchAnsicht",       {_("Settings"),            INKSCAPE_ICON("preferences-system"),                 DialogData::Basic,          ScrollProvider::PROVIDE   }},
++    {"Hirch3D",            {_("3D Model"),             INKSCAPE_ICON("draw-cuboid"),                 DialogData::Basic,          ScrollProvider::PROVIDE   }},
+     {"Find",               {_("_Find/Replace"),         INKSCAPE_ICON("edit-find"),                   DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+-    {"FontCollections",    {_("_Font Collections"),     INKSCAPE_ICON("font_collections"),            DialogData::Advanced,       ScrollProvider::NOPROVIDE }},
+-    {"Glyphs",             {_("_Unicode Characters"),   INKSCAPE_ICON("accessories-character-map"),   DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+-    {"IconPreview",        {_("Icon Preview"),          INKSCAPE_ICON("dialog-icon-preview"),         DialogData::Basic,          ScrollProvider::NOPROVIDE }},
++    {"Glyphs",             {_("_Special Characters"),   INKSCAPE_ICON("accessories-character-map"),   DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+     {"LivePathEffect",     {_("Path E_ffects"),         INKSCAPE_ICON("dialog-path-effects"),         DialogData::Advanced,       ScrollProvider::NOPROVIDE }},
+-    {"Memory",             {_("About _Memory"),         INKSCAPE_ICON("dialog-memory"),               DialogData::Diagnostics,    ScrollProvider::PROVIDE   }},
+     {"Messages",           {_("_Messages"),             INKSCAPE_ICON("dialog-messages"),             DialogData::Diagnostics,    ScrollProvider::NOPROVIDE }},
+     {"ObjectProperties",   {_("_Object Properties"),    INKSCAPE_ICON("dialog-object-properties"),    DialogData::Settings,       ScrollProvider::NOPROVIDE }},
+     {"Objects",            {_("Layers and Object_s"),   INKSCAPE_ICON("dialog-objects"),              DialogData::Basic,          ScrollProvider::PROVIDE   }},
+-    {"PaintServers",       {_("_Paint Servers"),        INKSCAPE_ICON("dialog-paint-server"),         DialogData::Advanced,       ScrollProvider::PROVIDE   }},
+-    {"Preferences",        {_("P_references"),          INKSCAPE_ICON("preferences-system"),          DialogData::Settings,       ScrollProvider::PROVIDE   }},
+-    {"Selectors",          {_("_Selectors and CSS"),    INKSCAPE_ICON("dialog-selectors"),            DialogData::Advanced,       ScrollProvider::PROVIDE   }},
+-    {"SVGFonts",           {_("SVG Font Editor"),       INKSCAPE_ICON("dialog-svg-font"),             DialogData::Advanced,       ScrollProvider::NOPROVIDE }},
+-    {"Swatches",           {_("S_watches"),             INKSCAPE_ICON("swatches"),                    DialogData::Basic,          ScrollProvider::PROVIDE   }},
++    {"Preferences",        {_("Advanced Settings"),          INKSCAPE_ICON("preferences-system"),          DialogData::Settings,       ScrollProvider::PROVIDE   }},
+     {"Symbols",            {_("S_ymbols"),              INKSCAPE_ICON("symbols"),                     DialogData::Basic,          ScrollProvider::PROVIDE   }},
+     {"Text",               {_("_Text and Font"),        INKSCAPE_ICON("dialog-text-and-font"),        DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+     {"Trace",              {_("_Trace Bitmap"),         INKSCAPE_ICON("bitmap-trace"),                DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+     {"Transform",          {_("Transfor_m"),            INKSCAPE_ICON("dialog-transform"),            DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+     {"UndoHistory",        {_("Undo _History"),         INKSCAPE_ICON("edit-undo-history"),           DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+     {"XMLEditor",          {_("_XML Editor"),           INKSCAPE_ICON("dialog-xml-editor"),           DialogData::Advanced,       ScrollProvider::NOPROVIDE }},
+-#if WITH_GSPELL
+-    {"Spellcheck",         {_("Check Spellin_g"),       INKSCAPE_ICON("tools-check-spelling"),        DialogData::Basic,          ScrollProvider::NOPROVIDE }},
+-#endif
+ #if DEBUG
+     {"Prototype",          {_("Prototype"),             INKSCAPE_ICON("document-properties"),         DialogData::Other,          ScrollProvider::NOPROVIDE }},
+ #endif
+diff --git a/src/ui/dialog/dialog-notebook.cpp b/src/ui/dialog/dialog-notebook.cpp
+index 3be7f5d..f5022d9 100644
+--- a/src/ui/dialog/dialog-notebook.cpp
++++ b/src/ui/dialog/dialog-notebook.cpp
+@@ -26,6 +26,7 @@
+ #include <gtkmm/separator.h>
+ 
+ #include "dialog-notebook.h"
++#include "ui/dialog/hirch-erlaubt.h"
+ #include "enums.h"
+ #include "inkscape.h"
+ #include "inkscape-window.h"
+@@ -119,7 +120,7 @@ DialogNotebook::DialogNotebook(DialogContainer *container)
+     for (auto&& kv : dialog_data) {
+         const auto& key = kv.first;
+         const auto& data = kv.second;
+-        if (data.category == DialogData::Other) {
++        if (data.category == DialogData::Other || !HirchErlaubt::fenster(key)) {   // Hirch CAM
+             continue;
+         }
+         // for sorting dialogs alphabetically, remove '_' (used for accelerators)
+@@ -299,7 +300,9 @@ void DialogNotebook::add_page(Gtk::Widget &page, Gtk::Widget &tab, Glib::ustring
+         if (provide_scroll(page)) {
+             wrapper->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_EXTERNAL);
+         } else {
+-            wrapper->set_policy(Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
++            // Hirch CAM (Windows a391aa9 Fund 1): auch waagrecht rollen – ein breites Fenster (Bitmap nachzeichnen,
++            // Sonderzeichen) erzwingt sonst seine Breite für die ganze Spalte, auch als verborgener Reiter
++            wrapper->set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+         }
+     }
+ 

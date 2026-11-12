@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hirch CAM: «So fräse ich» (Peter 06./07.11.) -->
+<svg xmlns="http://www.w3.org/2000/svg" width="170" height="104" viewBox="0 0 170 104"><defs>
+<marker id="a15" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#77767b"/></marker>
+<marker id="r15" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c0392b"/></marker>
+<marker id="g15" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#5f6f86"/></marker>
+<pattern id="m15" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="#d6c59f" stroke-width="1.1"/></pattern></defs>
+<polygon points="8,98 162,98 162,58 64,58 64,70 8,70" fill="#eadfc8" stroke="#b9a57c" stroke-width="1.2"/><polygon points="8,98 162,98 162,58 64,58 64,70 8,70" fill="url(#m15)"/>
+<circle cx="64" cy="52" r="18" fill="#5f6f86"/><circle cx="64" cy="52" r="3.5" fill="#a9b3c1"/>
+<path d="M39 49 A 25 25 0 0 1 89 49" fill="none" stroke="#5f6f86" stroke-width="2.2" marker-end="url(#g15)"/><line x1="80" y1="67" x2="60" y2="67" stroke="#c0392b" stroke-width="2.6" marker-end="url(#r15)"/>
+<line x1="116" y1="30" x2="158" y2="30" stroke="#77767b" stroke-width="2.4" marker-end="url(#a15)"/>
+</svg>

@@ -1,0 +1,936 @@
+diff --git a/src/actions/actions-tools.cpp b/src/actions/actions-tools.cpp
+index 54c6ab4..19a4b56 100644
+--- a/src/actions/actions-tools.cpp
++++ b/src/actions/actions-tools.cpp
+@@ -15,6 +15,7 @@
+ #include <glibmm/i18n.h>
+ 
+ #include "actions-tools.h"
++#include "ui/dialog/hirch-erlaubt.h"
+ #include "actions-helper.h"
+ 
+ #include "inkscape-application.h"
+@@ -210,6 +211,7 @@ tool_switch(Glib::ustring const &tool, InkscapeWindow *win)
+         show_output(Glib::ustring("tool-switch: invalid tool name: ") + tool.raw());
+         return;
+     }
++    if (!HirchErlaubt::werkzeug(tool.raw())) return;   // Hirch CAM: zentrale Liste (hirch-erlaubt.cpp)
+ 
+     // Have desktop?
+     SPDesktop* dt = win->get_desktop();
+@@ -383,7 +385,7 @@ std::vector<std::vector<Glib::ustring>> raw_data_tools =
+     {"win.tool-switch('Spray')",        N_("Spray Tool"),           SECTION, N_("Spray copies or clones of objects")             },
+     {"win.tool-switch('Eraser')",       N_("Eraser Tool"),          SECTION, N_("Erase objects or paths")                        },
+     {"win.tool-switch('Connector')",    N_("Connector Tool"),       SECTION, N_("Create diagram connectors")                     },
+-    {"win.tool-switch('LPETool')",      N_("LPE Tool"),             SECTION, N_("Do geometric constructions")                    },
++    {"win.tool-switch('LPETool')",      N_("Construction"),         SECTION, N_("Do geometric constructions")                    },
+ 
+     {"win.tool-switch('Zoom')",         N_("Zoom Tool"),            SECTION, N_("Zoom in or out")                                },
+     {"win.tool-switch('Measure')",      N_("Measure Tool"),         SECTION, N_("Measure objects")                               },
+diff --git a/src/libnrtype/font-lister.cpp b/src/libnrtype/font-lister.cpp
+index 19d6598..7a71473 100644
+--- a/src/libnrtype/font-lister.cpp
++++ b/src/libnrtype/font-lister.cpp
+@@ -18,6 +18,14 @@
+  */
+ 
+ #include "font-lister.h"
++#include <fstream>
++#include <map>
++#include <set>
++#include <cairomm/context.h>
++#include <cairomm/surface.h>
++#include <pango/pangocairo.h>
++#include <gdkmm/general.h>
++#include "io/resource.h"
+ 
+ #include <glibmm/markup.h>
+ #include <glibmm/regex.h>
+@@ -110,8 +118,18 @@ void FontLister::init_font_families(int group_offset, int group_size)
+ 
+     font_list_store->freeze_notify();
+ 
++    // Hirch CNC: zuerst die Einlinienschriften, dann (nach einem Trennstrich) die normalen
++    bool einlinien_da = false;
++    for (int runde = 0; runde < 2; ++runde) {
++    if (runde == 1 && einlinien_da) {
++        auto row = *font_list_store->append();
++        row[font_list.family] = "#";
++        row[font_list.onSystem] = true;          // gehört zum System-Teil (Dokumentschriften stehen oben)
++    }
+     // Traverse through the family names and set up the list store
+     for (auto const &key_val : pango_family_map) {
++        if ((runde == 0) != ist_einlinie(key_val.first)) continue;
++        if (runde == 0) einlinien_da = true;
+         if (!key_val.first.empty()) {
+             auto row = *font_list_store->append();
+             row[font_list.family] = key_val.first;
+@@ -123,6 +141,7 @@ void FontLister::init_font_families(int group_offset, int group_size)
+             row[font_list.onSystem] = true;
+         }
+     }
++    }
+ 
+     font_list_store->thaw_notify();
+ }
+@@ -336,6 +355,7 @@ Glib::ustring FontLister::get_font_family_markup(Gtk::TreeModel::const_iterator
+     }
+ 
+     int show_sample = prefs->getInt("/tools/text/show_sample_in_list", 1);
++    if (show_sample && ist_einlinie(family)) show_sample = 0;    // Hirch CNC: Bild statt Text
+     if (show_sample) {
+         Glib::ustring sample = prefs->getString("/tools/text/font_sample");
+         // we setup a small line height to avoid semi hidden fonts (one line height rendering overlap without padding)
+@@ -1325,6 +1345,7 @@ void font_lister_cell_data_func2(Gtk::CellRenderer &cell,
+     }
+ 
+     int show_sample = prefs->getInt("/tools/text/show_sample_in_list", 1);
++    if (show_sample && Inkscape::FontLister::ist_einlinie(family)) show_sample = 0;   // Hirch CNC
+     if (show_sample) {
+         Glib::ustring sample = prefs->getString("/tools/text/font_sample");
+         gchar* sample_escaped = g_markup_escape_text(sample.data(), -1);
+diff --git a/src/libnrtype/font-lister.h b/src/libnrtype/font-lister.h
+index 3e11f02..9dc1cd2 100644
+--- a/src/libnrtype/font-lister.h
++++ b/src/libnrtype/font-lister.h
+@@ -29,6 +29,7 @@
+ #include <glibmm/stringutils.h> // For strescape()
+ 
+ #include <gtkmm/liststore.h>
++#include <gdkmm/pixbuf.h>
+ #include <gtkmm/treemodel.h>
+ #include <gtkmm/treemodelcolumn.h>
+ #include <gtkmm/treepath.h>
+@@ -325,6 +326,16 @@ public:
+         return new_fonts_signal.connect(slot);
+     }
+ 
++    /// Hirch CNC: neu hinzugefügte Schriften (z. B. importierte Einlinienschriften) sofort anbieten
++    void schriften_neu_laden();
++
++    /// Hirch CNC: Einlinienschrift (Liste fonts/.hirch-einlinien.txt im Profil, von schrift_ttf geschrieben)?
++    static bool ist_einlinie(Glib::ustring const &family);
++    /// Hirch CNC: Vorschau einer Einlinienschrift als Bild (Striche gezogen statt gefüllt – gefüllt
++    /// sähe man nichts, die Striche haben keine Fläche)
++    static Glib::RefPtr<Gdk::Pixbuf> einlinie_bild(Glib::ustring const &family, Glib::ustring const &text,
++                                                   bool dunkel, int hoehe);
++
+     bool blocked() const { return block; }
+ 
+     int get_font_families_size() const { return pango_family_map.size(); }
+diff --git a/src/ui/dialog/glyphs.cpp b/src/ui/dialog/glyphs.cpp
+index fbb2a76..514b79e 100644
+--- a/src/ui/dialog/glyphs.cpp
++++ b/src/ui/dialog/glyphs.cpp
+@@ -10,7 +10,9 @@
+ 
+ #include "glyphs.h"
+ 
++#include <iomanip>
+ #include <map>
++#include <memory>
+ #include <utility>
+ #include <glibmm/i18n.h>
+ #include <glibmm/markup.h>
+@@ -21,6 +23,13 @@
+ #include <gtkmm/iconview.h>
+ #include <gtkmm/liststore.h>
+ #include <gtkmm/scrolledwindow.h>
++#include <gdkmm/general.h>
++#include <gdkmm/pixbuf.h>
++#include <cairomm/context.h>
++#include <cairomm/surface.h>
++#include <2geom/pathvector.h>
++#include <2geom/transforms.h>
++#include "display/cairo-utils.h"
+ #include <sigc++/adaptors/hide.h>
+ #include <sigc++/functors/mem_fun.h>
+ #include <libnrtype/font-instance.h>
+@@ -385,15 +394,59 @@ public:
+     Gtk::TreeModelColumn<gunichar> code;
+     Gtk::TreeModelColumn<Glib::ustring> name;
+     Gtk::TreeModelColumn<Glib::ustring> tooltip;
++    Gtk::TreeModelColumn<Glib::RefPtr<Gdk::Pixbuf>> bild;   // Hirch CAM: selbst gezeichnetes Zeichen
+ 
+     GlyphColumns()
+     {
+         add(code);
+         add(name);
+         add(tooltip);
++        add(bild);
+     }
+ };
+ 
++/// Hirch CAM (Peter 10.11.): ein Zeichen als Bild – die Umrisse aus Inkscapes eigener Schrift (FontInstance, wie auf
++/// der Zeichenfläche; unter Windows kennt die Standard-Schriftliste von Pango die mitgebrachten Schriften nicht,
++/// Windows 355999b), gefüllt; ist nichts gefüllt (Einlinienschrift: Linien ohne Fläche), die Linien nachgezogen.
++static Glib::RefPtr<Gdk::Pixbuf> hirch_zeichen_bild(std::shared_ptr<FontInstance> const &font, gunichar ch, int kante,
++                                                     Gdk::RGBA const &farbe)
++{
++    auto flaeche = Cairo::ImageSurface::create(Cairo::FORMAT_ARGB32, kante, kante);
++    auto cr = Cairo::Context::create(flaeche);
++    int const gid = font ? font->MapUnicodeChar(ch) : 0;
++    Geom::PathVector const *pv = gid > 0 ? font->PathVector(gid) : nullptr;
++    if (pv && !pv->empty()) {
++        auto box = pv->boundsExact();
++        if (box) {
++            double const em = kante * 0.6;                 // 1 em = 60 % der Zelle
++            double const m = std::max(box->width(), box->height()) * em;
++            double const s = m > kante * 0.86 ? em * kante * 0.86 / m : em;   // grosse Zeichen einpassen
++            Geom::Point mitte = box->midpoint();
++            // Umrisse der Schrift: y nach oben – fürs Bild spiegeln
++            Geom::Affine t = Geom::Translate(-mitte) * Geom::Scale(s, -s) * Geom::Translate(kante / 2.0, kante / 2.0);
++            Geom::PathVector p = *pv * t;
++            cr->set_source_rgba(farbe.get_red(), farbe.get_green(), farbe.get_blue(), farbe.get_alpha());
++            feed_pathvector_to_cairo(cr->cobj(), p);
++            cr->fill();
++            flaeche->flush();
++            bool leer = true;
++            unsigned char const *d = flaeche->get_data();
++            int const schritt = flaeche->get_stride();
++            for (int y = 0; y < kante && leer; ++y)
++                for (int x = 0; x < kante && leer; ++x)
++                    if (d[y * schritt + x * 4 + 3] != 0) leer = false;
++            if (leer) {
++                feed_pathvector_to_cairo(cr->cobj(), p);
++                cr->set_line_width(1.2);
++                cr->set_line_join(Cairo::LINE_JOIN_ROUND);
++                cr->set_line_cap(Cairo::LINE_CAP_ROUND);
++                cr->stroke();
++            }
++        }
++    }
++    return Gdk::Pixbuf::create(flaeche, 0, 0, kante, kante);
++}
++
+ GlyphColumns *GlyphsPanel::getColumns()
+ {
+     static GlyphColumns *columns = new GlyphColumns();
+@@ -445,6 +498,13 @@ GlyphsPanel::GlyphsPanel()
+         scriptCombo->set_halign(Gtk::ALIGN_START);
+         scriptCombo->set_valign(Gtk::ALIGN_START);
+         scriptCombo->set_hexpand();
++        // Hirch CAM: lange Namen kürzen, sonst wird Sonderzeichen breiter als die Spalte
++        for (auto *c : scriptCombo->get_cells()) {
++            if (auto t = dynamic_cast<Gtk::CellRendererText *>(c)) {
++                t->property_ellipsize() = Pango::ELLIPSIZE_END;
++                t->property_width_chars() = 18;
++            }
++        }
+         table->attach(*scriptCombo, 1, row, 1, 1);
+     }
+ 
+@@ -469,6 +529,13 @@ GlyphsPanel::GlyphsPanel()
+         rangeCombo->set_halign(Gtk::ALIGN_START);
+         rangeCombo->set_valign(Gtk::ALIGN_START);
+         rangeCombo->set_hexpand();
++        // Hirch CAM: lange Namen kürzen, sonst wird Sonderzeichen breiter als die Spalte
++        for (auto *c : rangeCombo->get_cells()) {
++            if (auto t = dynamic_cast<Gtk::CellRendererText *>(c)) {
++                t->property_ellipsize() = Pango::ELLIPSIZE_END;
++                t->property_width_chars() = 18;
++            }
++        }
+         table->attach(*rangeCombo, 1, row, 1, 1);
+     }
+ 
+@@ -480,7 +547,11 @@ GlyphsPanel::GlyphsPanel()
+ 
+     iconView = Gtk::make_managed<Gtk::IconView>(static_cast<Glib::RefPtr<Gtk::TreeModel> >(store));
+     iconView->set_name("UnicodeIconView");
+-    iconView->set_markup_column(columns->name);
++    iconView->set_pixbuf_column(columns->bild);    // Hirch CAM: Bild statt Text (Einlinienschriften sichtbar)
++    // Hirch CAM (Windows 84f61ed): beim ersten Aufbau ist die Farbe des Themas noch nicht bekannt (unsichtbare Bilder,
++    // Feld leer, bis man eine andere Schrift wählt) – beim Zeigen und bei Themenwechsel neu zeichnen
++    instanceConns.emplace_back(iconView->signal_map().connect([this] { rebuild(); }));
++    instanceConns.emplace_back(iconView->signal_style_updated().connect([this] { rebuild(); }));
+     iconView->set_tooltip_column(2); // Uses Pango markup, must use column number.
+     iconView->set_margin(0);
+     iconView->set_item_padding(0);
+@@ -508,7 +579,7 @@ GlyphsPanel::GlyphsPanel()
+     entry = Gtk::make_managed<Gtk::Entry>();
+     instanceConns.emplace_back(
+         entry->signal_changed().connect(sigc::mem_fun(*this, &GlyphsPanel::calcCanInsert)));
+-    entry->set_width_chars(18);
++    entry->set_width_chars(8);   // Hirch CAM: passt in die Spalte, «Hinzufügen» bleibt sichtbar
+     UI::pack_start(*box, *entry, UI::PackOptions::shrink);
+ 
+     auto pad = Gtk::make_managed<Gtk::Label>("    ");
+@@ -722,15 +793,20 @@ void GlyphsPanel::rebuild()
+     GlyphColumns *columns = getColumns();
+     store->clear();
+ 
++    auto const farbe = iconView->get_style_context()->get_color(Gtk::STATE_FLAG_NORMAL);
+     for (auto const it : present) {
+         Gtk::ListStore::iterator row = store->append();
++        (*row)[columns->bild] = hirch_zeichen_bild(font, it, 30, farbe);
+         Glib::ustring tmp(1, it);
+         tmp = Glib::Markup::escape_text(tmp);  // Escape '&', '<', etc.
+         (*row)[columns->code] = it;
+         (*row)[columns->name]    = Glib::ustring::compose("<span font_desc=\"%1\">%2</span>",
+                                                           fontspec, tmp);
+-        (*row)[columns->tooltip] = Glib::ustring::compose("<span font_desc=\"%1\" size=\"42000\">%2</span>",
+-                                                          fontspec, tmp);
++        // Hirch CAM: dazu das Zeichen in gewöhnlicher Schrift und seine Nummer (Einlinienschriften bleiben hier leer)
++        (*row)[columns->tooltip] = Glib::ustring::compose("<span size=\"30000\">%1</span>   U+%2", tmp,
++                                                          Glib::ustring::format(std::hex, std::uppercase,
++                                                                                std::setfill(L'0'), std::setw(4),
++                                                                                (unsigned)it));
+     }
+ 
+     // Reconnect the model once it has been updated:
+diff --git a/src/ui/toolbar/arc-toolbar.cpp b/src/ui/toolbar/arc-toolbar.cpp
+index b1cd271..e4a3030 100644
+--- a/src/ui/toolbar/arc-toolbar.cpp
++++ b/src/ui/toolbar/arc-toolbar.cpp
+@@ -27,11 +27,18 @@
+  */
+ 
+ #include "arc-toolbar.h"
++#include "ui/dialog/hirch-sprache.h"   // Hirch CNC: TR()
+ 
+ #include <glibmm/i18n.h>
+ #include <gtkmm/radiobutton.h>
+ 
+ #include "desktop.h"
++#include "desktop-style.h"
++#include "document.h"
++#include "layer-manager.h"
++#include "object/sp-root.h"
++#include "util/units.h"
++#include "xml/repr.h"
+ #include "document-undo.h"
+ #include "mod360.h"
+ #include "object/sp-ellipse.h"
+@@ -141,6 +148,35 @@ ArcToolbar::ArcToolbar(SPDesktop *desktop)
+     menu_btn2->init(2, "tag2", popover_box2, children);
+     addCollapsibleButton(menu_btn2);
+ 
++    // Hirch CNC: Radius direkt eingeben
++    {
++        auto rbox = Gtk::make_managed<Gtk::Box>(Gtk::ORIENTATION_HORIZONTAL, 0);
++        rbox->set_tooltip_text(Inkscape::UI::Dialog::TR("Radius des Kreises. Mit gewähltem Kreis: ändert ihn. "
++                               "Ohne Auswahl: Wert eingeben und Enter drücken – ein neuer Kreis "
++                               "erscheint in der Mitte der Ansicht."));
++        auto rl = Gtk::make_managed<Gtk::Label>(Inkscape::UI::Dialog::TR("Radius:"));
++        rbox->pack_start(*rl, false, false);
++        auto adj = Gtk::Adjustment::create(10.0, 0.001, 1e6, 0.1, 1.0);
++        double r = Preferences::get()->getDouble("/tools/shapes/arc/radius", 0);
++        if (r > 0) adj->set_value(Quantity::convert(r, "px", init_units));
++        _r_item = Gtk::make_managed<UI::Widget::SpinButton>();
++        _r_item->set_adjustment(adj);
++        _r_item->set_digits(3);
++        _r_item->set_width_chars(9);
++        _r_item->set_numeric(true);
++        _tracker->addAdjustment(adj->gobj());
++        _r_item->addUnitTracker(_tracker.get());
++        _r_item->set_defocus_widget(_desktop->getCanvas());
++        rbox->pack_start(*_r_item, false, false);
++        _toolbar->pack_start(*rbox, false, false);
++        _toolbar->reorder_child(*rbox, 1);
++        adj->signal_value_changed().connect([this] {
++            if (_freeze || _tracker->isUpdating()) return;
++            radius_setzen(false);
++        });
++        _r_item->signal_activate().connect([this] { radius_setzen(true); });
++    }
++
+     add(*_toolbar);
+ 
+     _make_whole.signal_clicked().connect(sigc::mem_fun(*this, &ArcToolbar::defaults));
+@@ -459,6 +495,7 @@ void ArcToolbar::notifyAttributeChanged(Inkscape::XML::Node &repr, GQuark,
+         gdouble ry = ge->getVisibleRy();
+         _rx_item.get_adjustment()->set_value(Quantity::convert(rx, "px", unit));
+         _ry_item.get_adjustment()->set_value(Quantity::convert(ry, "px", unit));
++        if (_r_item) _r_item->get_adjustment()->set_value(Quantity::convert(rx, "px", unit));
+     }
+ 
+     gdouble start = repr.getAttributeDouble("sodipodi:start", 0.0);;
+diff --git a/src/ui/toolbar/arc-toolbar.h b/src/ui/toolbar/arc-toolbar.h
+index 8f99742..4edf046 100644
+--- a/src/ui/toolbar/arc-toolbar.h
++++ b/src/ui/toolbar/arc-toolbar.h
+@@ -99,6 +99,12 @@ private:
+     void check_ec(SPDesktop* desktop, Inkscape::UI::Tools::ToolBase* tool);
+     void selection_changed(Inkscape::Selection *selection);
+ 
++    // Hirch CNC: ein Feld «Radius» für Kreise; mit Enter ohne Auswahl wird
++    // ein neuer Kreis in der Mitte der Ansicht gezeichnet
++    UI::Widget::SpinButton *_r_item = nullptr;
++    void radius_setzen(bool neu_zeichnen);
++    void radius_zeigen();
++
+     sigc::connection _changed;
+ 
+     void notifyAttributeChanged(Inkscape::XML::Node &node, GQuark name, Inkscape::Util::ptr_shared old_value,
+diff --git a/src/ui/toolbar/lpe-toolbar.cpp b/src/ui/toolbar/lpe-toolbar.cpp
+index 42eb9d9..dc2dbcd 100644
+--- a/src/ui/toolbar/lpe-toolbar.cpp
++++ b/src/ui/toolbar/lpe-toolbar.cpp
+@@ -107,7 +107,14 @@ LPEToolbar::LPEToolbar(SPDesktop *desktop)
+         return ForEachResult::_continue;
+     });
+ 
++    // Hirch CAM (Windows a391aa9 Fund 3): «Kreis durch 3 Punkte» nimmt nur zwei Klicks an und meldet dann einen Fehler
++    // (Inkscape). Ausgeblendet; ein Kreis durch 3 Punkte geht mit dem Pfadeffekt «Ellipse aus Punkten».
++    if (_mode_buttons.size() > 2) {
++        _mode_buttons[2]->set_no_show_all(true);
++        _mode_buttons[2]->set_visible(false);
++    }
+     int mode = prefs->getInt("/tools/lpetool/mode", 0);
++    if (mode == 2) mode = 0;
+     _mode_buttons[mode]->set_active();
+ 
+     // Add the units menu
+diff --git a/src/ui/toolbar/select-toolbar.cpp b/src/ui/toolbar/select-toolbar.cpp
+index 7b4ace0..5016d0e 100644
+--- a/src/ui/toolbar/select-toolbar.cpp
++++ b/src/ui/toolbar/select-toolbar.cpp
+@@ -42,6 +42,13 @@
+ #include "ui/widget/toolbar-menu-button.h"
+ #include "ui/widget/unit-tracker.h"
+ #include "widgets/widget-sizes.h"
++#include "seltrans.h"
++#include "ui/tools/select-tool.h"
++#include "ui/dialog/hirch-sprache.h"
++
++namespace Inkscape::UI::Dialog {
++Gtk::Widget *hirch_nullpunkt_feld(SPDesktop *desktop);   // hirch-ansicht.cpp: «Nullpunkt: unten links»
++}
+ 
+ using Inkscape::UI::Widget::UnitTracker;
+ using Inkscape::Util::Unit;
+@@ -78,6 +85,12 @@ SelectToolbar::SelectToolbar(SPDesktop *desktop)
+ 
+     auto unit_menu = _tracker->create_tool_item(_("Units"), (""));
+     get_widget<Gtk::Box>(_builder, "unit_menu_box").add(*unit_menu);
++    // Hirch CNC (Peter, 22.10.): worauf X/Y sich beziehen, gleich neben der Einheit (früher in der Zeile
++    // «2D | 3D» über der Zeichenfläche)
++    if (auto np = Inkscape::UI::Dialog::hirch_nullpunkt_feld(desktop)) {
++        np->set_margin_start(10);
++        get_widget<Gtk::Box>(_builder, "unit_menu_box").add(*np);
++    }
+ 
+     // Fetch all the ToolbarMenuButtons at once from the UI file
+     // Menu Button #1
+@@ -102,14 +115,28 @@ SelectToolbar::SelectToolbar(SPDesktop *desktop)
+     // cause segfault.
+     auto children = _toolbar->get_children();
+ 
+-    menu_btn1->init(1, "tag1", popover_box1, children);
+-    addCollapsibleButton(menu_btn1);
++    // Hirch CNC (Peter, 20.10.): die selten gebrauchten Auswahl-Knöpfe stehen immer im Menü
++    // «Auswahl ▾» (mit Text), nicht vorne in der Leiste
++    popover_box1->set_orientation(Gtk::ORIENTATION_VERTICAL);
++    for (auto c : children) {
++        if (!c->get_style_context()->has_class("tag1")) continue;
++        _toolbar->remove(*c);
++        if (auto b = dynamic_cast<Gtk::Button *>(c)) b->set_relief(Gtk::RELIEF_NONE);
++        c->set_halign(Gtk::ALIGN_FILL);
++        popover_box1->add(*c);
++    }
++    children = _toolbar->get_children();
++    menu_btn1->init(1, "hirch-fest", popover_box1, children);
++    menu_btn1->set_tooltip_text(_("Selection"));
++    menu_btn1->show();
+     menu_btn2->init(2, "tag2", popover_box2, children);
+     addCollapsibleButton(menu_btn2);
+     menu_btn3->init(3, "tag3", popover_box3, children);
+     addCollapsibleButton(menu_btn3);
+-    menu_btn4->init(4, "tag4", popover_box4, children);
+-    addCollapsibleButton(menu_btn4);
++    // Hirch CNC: Schalter «beim Skalieren mitändern» ausgeblendet (Linienstärke
++    // skaliert nie mit, Verläufe/Muster gibt es nicht) – nicht einklappbar machen
++    (void)popover_box4;
++    menu_btn4->hide();
+ 
+     add(*_toolbar);
+ 
+@@ -158,6 +185,14 @@ SelectToolbar::SelectToolbar(SPDesktop *desktop)
+         selection->connectModified(sigc::mem_fun(*this, &SelectToolbar::on_inkscape_selection_modified)));
+     _connections.emplace_back(
+         selection->connectChanged(sigc::mem_fun(*this, &SelectToolbar::on_inkscape_selection_changed)));
++    // Hirch CNC: X/Y zählen ab dem Nullpunkt der gewählten Seite – wechselt die Seite (nach der Auswahl),
++    // neu anzeigen
++    _connections.emplace_back(desktop->getDocument()->getPageManager().connectPageSelected([this](SPPage *) {
++        if (_desktop) layout_widget_update(_desktop->getSelection());
++    }));
++
++    hirch_bezug_bauen();
++    hirch_winkel_bauen();
+ 
+     // Update now.
+     layout_widget_update(selection);
+@@ -221,7 +256,6 @@ void SelectToolbar::any_value_changed(Glib::RefPtr<Gtk::Adjustment> &adj)
+     auto selection = _desktop->getSelection();
+     auto document = _desktop->getDocument();
+     auto &pm = document->getPageManager();
+-    auto page = pm.getSelectedPageRect();
+     auto page_correction = prefs->getBool("/options/origincorrection/page", true);
+ 
+     document->ensureUpToDate();
+@@ -259,8 +293,9 @@ void SelectToolbar::any_value_changed(Glib::RefPtr<Gtk::Adjustment> &adj)
+ 
+         // Adjust against selected page, so later correction isn't broken.
+         if (page_correction) {
+-            old_x -= page.left();
+-            old_y -= page.top();
++            auto o = pm.getSelectedPageAffine().translation();      // Hirch CNC: ab dem Nullpunkt
++            old_x -= o.x();
++            old_y -= o.y();
+         }
+ 
+         new_x = old_x * (_adj_x->get_value() / 100 / unit->factor);
+@@ -275,8 +310,9 @@ void SelectToolbar::any_value_changed(Glib::RefPtr<Gtk::Adjustment> &adj)
+ 
+     // Adjust according to the selected page, if needed
+     if (page_correction) {
+-        x0 += page.left();
+-        y0 += page.top();
++        auto o = pm.getSelectedPageAffine().translation();          // Hirch CNC: ab dem Nullpunkt
++        x0 += o.x();
++        y0 += o.y();
+     }
+ 
+     gdouble x1 = x0 + new_w;
+@@ -285,11 +321,17 @@ void SelectToolbar::any_value_changed(Glib::RefPtr<Gtk::Adjustment> &adj)
+     gdouble yrel = new_h / old_h;
+ 
+     // Keep proportions if lock is on
++    // Hirch CNC (Peter, 23.10.): die mitgeänderte Seite bleibt am Bezugspunkt stehen (vorher blieb
++    // links bzw. unten stehen, der Mittelpunkt wanderte)
+     if (_lock_btn.get_active()) {
+         if (adj == _adj_h) {
+-            x1 = x0 + yrel * bbox_user->dimensions()[Geom::X];
++            double bx = x0 + old_w * selection->anchor_x, nw = yrel * old_w;
++            x0 = bx - nw * selection->anchor_x;
++            x1 = x0 + nw;
+         } else if (adj == _adj_w) {
+-            y1 = y0 + xrel * bbox_user->dimensions()[Geom::Y];
++            double by = y0 + old_h * selection->anchor_y, nh = xrel * old_h;
++            y0 = by - nh * selection->anchor_y;
++            y1 = y0 + nh;
+         }
+     }
+ 
+@@ -354,9 +396,9 @@ void SelectToolbar::layout_widget_update(Inkscape::Selection *sel)
+ 
+             if (Preferences::get()->getBool("/options/origincorrection/page", true)) {
+                 auto &pm = _desktop->getDocument()->getPageManager();
+-                auto page = pm.getSelectedPageRect();
+-                x -= page.left();
+-                y -= page.top();
++                auto o = pm.getSelectedPageAffine().translation();  // Hirch CNC: ab dem Nullpunkt
++                x -= o.x();
++                y -= o.y();
+             }
+ 
+             auto _adj_x = _x_item.get_adjustment();
+@@ -388,6 +430,8 @@ void SelectToolbar::layout_widget_update(Inkscape::Selection *sel)
+ 
+ void SelectToolbar::on_inkscape_selection_modified(Inkscape::Selection *selection, guint flags)
+ {
++    if (_hirch_bezug) _hirch_bezug->queue_draw();
++    hirch_winkel_zeigen();
+     assert(_desktop->getSelection() == selection);
+     if ((flags & (SP_OBJECT_MODIFIED_FLAG        |
+                      SP_OBJECT_PARENT_MODIFIED_FLAG |
+@@ -400,6 +444,8 @@ void SelectToolbar::on_inkscape_selection_modified(Inkscape::Selection *selectio
+ void SelectToolbar::on_inkscape_selection_changed(Inkscape::Selection *selection)
+ {
+     assert(_desktop->getSelection() == selection);
++    if (_hirch_bezug) _hirch_bezug->queue_draw();
++    hirch_winkel_zeigen();
+     {
+         bool setActive = (selection && !selection->isEmpty());
+ 
+diff --git a/src/ui/toolbar/select-toolbar.h b/src/ui/toolbar/select-toolbar.h
+index 3ef5f94..f634d35 100644
+--- a/src/ui/toolbar/select-toolbar.h
++++ b/src/ui/toolbar/select-toolbar.h
+@@ -22,6 +22,8 @@
+ #include <glibmm/refptr.h>
+ 
+ #include "preferences.h"
++#include <gtkmm/drawingarea.h>
++#include <gtkmm/spinbutton.h>
+ #include "toolbar.h"
+ #include "helper/auto-connection.h"
+ 
+@@ -86,6 +88,12 @@ private:
+     void on_inkscape_selection_modified(Inkscape::Selection *selection, unsigned flags);
+     void on_inkscape_selection_changed (Inkscape::Selection *selection);
+     void toggle_lock();
++    void hirch_bezug_bauen();                       // Hirch CNC: Neun-Punkte-Bezugsfeld
++    Gtk::DrawingArea *_hirch_bezug = nullptr;
++    void hirch_winkel_bauen();                      // Hirch CNC: Drehwinkel «∠» neben H
++    void hirch_winkel_zeigen();
++    Gtk::SpinButton *_hirch_winkel = nullptr;
++    bool _hirch_winkel_setzt = false;
+     void toggle_touch();
+     void toggle_stroke();
+     void toggle_corners();
+diff --git a/src/ui/toolbar/text-toolbar.cpp b/src/ui/toolbar/text-toolbar.cpp
+index 1c4bb87..9ed0671 100644
+--- a/src/ui/toolbar/text-toolbar.cpp
++++ b/src/ui/toolbar/text-toolbar.cpp
+@@ -32,6 +32,8 @@
+ #include <boost/range/adaptor/reversed.hpp>
+ #include <glibmm/i18n.h>
+ #include <gtkmm/button.h>
++#include <algorithm>
++#include <cmath>
+ #include <gtkmm/checkbutton.h>
+ #include <gtkmm/frame.h>
+ #include <gtkmm/grid.h>
+@@ -58,6 +60,7 @@
+ #include "ui/builder-utils.h"
+ #include "ui/dialog/dialog-container.h"
+ #include "ui/icon-names.h"
++#include "ui/dialog/hirch-sprache.h"
+ #include "ui/tools/select-tool.h"
+ #include "ui/tools/text-tool.h"
+ #include "ui/util.h"
+@@ -259,7 +262,7 @@ TextToolbar::TextToolbar(SPDesktop *desktop)
+     _tracker->setActiveUnit(unit_table.getUnit(""));
+ 
+     // We change only the display value
+-    _tracker->changeLabel("lines", 0, true);
++    _tracker->changeLabel(Inkscape::UI::Dialog::TR("Zeilen"), 0, true);   // Hirch CNC: übersetzt (war englisch «lines»)
+     _tracker_fs->setActiveUnit(unit_table.getUnit("mm"));
+ 
+     // Setup the spin buttons.
+@@ -273,6 +276,18 @@ TextToolbar::TextToolbar(SPDesktop *desktop)
+ 
+     _line_height_item.set_custom_numeric_menu_data(   { {1, _("Single spaced")}, {1.25, _("Default")}, {1.5, ""}, {2, _("Double spaced")} });
+     _letter_spacing_item.set_custom_numeric_menu_data({ {0, C_("Text tool", "Normal")} });
++    {
++        _hirch_rille = Gtk::make_managed<Gtk::Label>();
++        _hirch_rille->get_style_context()->add_class("dim-label");
++        _hirch_rille->set_margin_start(4);
++        _hirch_rille->set_tooltip_text(Inkscape::UI::Dialog::TR(
++            "Zuschlag aus der Rille der Gravur: so viel mehr Abstand braucht jedes Buchstabenpaar, weil die Rille "
++            "breiter ist als die 5 %, für die die Schrift gesetzt ist. Das Feld davor ist deine eigene Korrektur."));
++        _hirch_rille->set_no_show_all(true);
++        auto &kasten = get_widget<Gtk::Box>(_builder, "letter_spacing_box");
++        kasten.add(*_hirch_rille);
++        kasten.set_tooltip_text(Inkscape::UI::Dialog::TR("Abstand zwischen den Buchstaben in mm – deine Korrektur"));
++    }
+     _word_spacing_item.set_custom_numeric_menu_data(  { {0, C_("Text tool", "Normal")} });
+     _dx_item.set_custom_numeric_menu_data(            { {0, ""} });
+     _dy_item.set_custom_numeric_menu_data(            { {0, ""} });
+@@ -1453,6 +1468,26 @@ void TextToolbar::wordspacing_value_changed()
+     _freeze = false;
+ }
+ 
++// Hirch CNC: das Feld «Abstand» zeigt mm (wie die Schriftgrösse), nicht px
++static double const HIRCH_PX_MM = 96.0 / 25.4;
++
++// Hirch CNC: Zuschlag für die Rille (hirch:zuschlag, gesetzt vom Panel) des gewählten Einlinientexts.
++// Der Abstand im Stil ist Korrektur + Zuschlag; das Feld zeigt nur die Korrektur.
++static double hirch_zuschlag(SPDesktop *desktop)
++{
++    if (!desktop || !desktop->getSelection()) return 0.0;
++    for (auto item : desktop->getSelection()->items()) {
++        for (SPObject *o = item; o; o = o->parent) {
++            if (auto t = cast<SPText>(o)) {
++                auto a = o->getRepr() ? o->getRepr()->attribute("hirch:zuschlag") : nullptr;
++                // in Dokument-px wie der Abstand, den die Leiste abfragt und setzt
++                return a ? g_ascii_strtod(a, nullptr) * t->i2doc_affine().descrim() : 0.0;
++            }
++        }
++    }
++    return 0.0;
++}
++
+ void TextToolbar::letterspacing_value_changed()
+ {
+     // quit if run by the _changed callbacks
+@@ -1465,7 +1500,7 @@ void TextToolbar::letterspacing_value_changed()
+     // Set css letter-spacing
+     SPCSSAttr *css = sp_repr_css_attr_new ();
+     Inkscape::CSSOStringStream osfs;
+-    osfs << _letter_spacing_item.get_adjustment()->get_value() << "px"; // For now always use px
++    osfs << _letter_spacing_item.get_adjustment()->get_value() * HIRCH_PX_MM + hirch_zuschlag(_desktop) << "px"; // For now always use px
+     sp_repr_css_set_property (css, "letter-spacing", osfs.str().c_str());
+     text_outer_set_style(css);
+ 
+@@ -1890,6 +1925,23 @@ void TextToolbar::selection_changed(Inkscape::Selection *selection) // don't bot
+         if (query.letter_spacing.normal) letterSpacing = 0.0;
+         else letterSpacing = query.letter_spacing.computed; // Assume no units (change in desktop-style.cpp)
+ 
++        // Hirch CNC: nur die eigene Korrektur zeigen, der Zuschlag für die Rille steht daneben
++        double zuschlag = hirch_zuschlag(_desktop);
++        letterSpacing = (letterSpacing - zuschlag) / HIRCH_PX_MM;
++        if (_hirch_rille) {
++            if (std::abs(zuschlag) > 1e-6) {
++                char zahl[32];
++                g_snprintf(zahl, sizeof zahl, "%+.2f", zuschlag / HIRCH_PX_MM);
++                std::string z = zahl;
++                if (!Inkscape::UI::Dialog::hirch_englisch()) std::replace(z.begin(), z.end(), '.', ',');
++                _hirch_rille->set_text(z.substr(0, 1) + " " + z.substr(1) + " " +
++                                       Inkscape::UI::Dialog::TR("für die Rille"));
++                _hirch_rille->show();
++            } else {
++                _hirch_rille->hide();
++            }
++        }
++
+         _letter_spacing_item.get_adjustment()->set_value(letterSpacing);
+ 
+         // Writing mode
+diff --git a/src/ui/toolbar/text-toolbar.h b/src/ui/toolbar/text-toolbar.h
+index c36384b..0e3b786 100644
+--- a/src/ui/toolbar/text-toolbar.h
++++ b/src/ui/toolbar/text-toolbar.h
+@@ -30,6 +30,7 @@
+  */
+ 
+ #include <sigc++/connection.h>
++#include <gtkmm/label.h>
+ 
+ #include "object/sp-item.h"
+ #include "object/sp-object.h"
+@@ -99,6 +100,7 @@ private:
+ 
+     UI::Widget::SpinButton &_word_spacing_item;
+     UI::Widget::SpinButton &_letter_spacing_item;
++    Gtk::Label *_hirch_rille = nullptr;   // Hirch CNC: «+ 0,65 für die Rille» neben dem Abstand
+     UI::Widget::SpinButton &_dx_item;
+     UI::Widget::SpinButton &_dy_item;
+     UI::Widget::SpinButton &_rotation_item;
+diff --git a/src/ui/toolbar/tool-toolbar.cpp b/src/ui/toolbar/tool-toolbar.cpp
+index 3b29f31..fea5079 100644
+--- a/src/ui/toolbar/tool-toolbar.cpp
++++ b/src/ui/toolbar/tool-toolbar.cpp
+@@ -18,6 +18,7 @@
+ #include <utility>
+ #include <glibmm/i18n.h>
+ #include <giomm/menu.h>
++#include "ui/dialog/hirch-erlaubt.h"
+ #include <giomm/simpleactiongroup.h>
+ #include <gtkmm/builder.h>
+ #include <gtkmm/button.h>
+@@ -73,8 +74,6 @@ void ToolToolbar::set_visible_buttons()
+     Gtk::Widget* last_sep = nullptr;
+     Gtk::FlowBox* last_box = nullptr;
+ 
+-    Inkscape::Preferences *prefs = Inkscape::Preferences::get();
+-
+     for_each_descendant(*this, [&](Gtk::Widget &widget) {
+         if (auto const flowbox = dynamic_cast<Gtk::FlowBox *>(&widget)) {
+             flowbox->set_visible(true);
+@@ -83,7 +82,7 @@ void ToolToolbar::set_visible_buttons()
+             last_box = flowbox;
+         } else if (auto const btn = dynamic_cast<Gtk::Button *>(&widget)) {
+             auto const name = sp_get_action_target(btn);
+-            auto show = prefs->getBool(get_tool_visible_button_path(name), true);
++            auto show = HirchErlaubt::werkzeug_knopf(name.raw());   // Hirch CAM: zentrale Liste statt «Leisten»
+             auto const parent = btn->get_parent();
+             if (show) {
+                 parent->set_visible(true);
+diff --git a/src/ui/tools/booleans-tool.cpp b/src/ui/tools/booleans-tool.cpp
+index bbba397..3d199f0 100644
+--- a/src/ui/tools/booleans-tool.cpp
++++ b/src/ui/tools/booleans-tool.cpp
+@@ -198,8 +198,9 @@ void InteractiveBooleansTool::update_status()
+     bool pref = prefs->getInt("/tools/booleans/mode", 0) == 0;
+     auto modifier = Modifier::get(Modifiers::Type::BOOL_SHIFT);
+     message_context->setF(Inkscape::IMMEDIATE_MESSAGE,
+-        (pref ? "<b>Drag</b> over fragments to unite them. <b>Click</b> to create a segment. Hold <b>%s</b> to Subtract."
+-              : "<b>Drag</b> over fragments to delete them. <b>Click</b> to delete a segment. Hold <b>%s</b> to Unite."),
++        // Hirch CAM (Windows a391aa9): übersetzbar
++        (pref ? _("<b>Drag</b> over fragments to unite them. <b>Click</b> to create a segment. Hold <b>%s</b> to Subtract.")
++              : _("<b>Drag</b> over fragments to delete them. <b>Click</b> to delete a segment. Hold <b>%s</b> to Unite.")),
+         modifier->get_label().c_str());
+ }
+ 
+diff --git a/src/ui/tools/select-tool.cpp b/src/ui/tools/select-tool.cpp
+index c7da60b..9c5376a 100644
+--- a/src/ui/tools/select-tool.cpp
++++ b/src/ui/tools/select-tool.cpp
+@@ -27,6 +27,7 @@
+ #include <glibmm/i18n.h>
+ 
+ #include "desktop.h"
++#include "inkscape-window.h"
+ #include "document-undo.h"
+ #include "document.h"
+ #include "layer-manager.h"
+@@ -420,6 +421,15 @@ bool SelectTool::root_handler(CanvasEvent const &event)
+                 if (!selection->isEmpty()) {
+                     SPItem *clicked_item = selection->items().front();
+ 
++                    // Hirch CNC: Gravurtext aus einer früheren Zeichnung – in einen normalen Text umwandeln
++                    if (clicked_item->getRepr() && clicked_item->getRepr()->attribute("hirch:gravurtext")) {
++                        if (auto win = _desktop->getInkscapeWindow()) win->activate_action("hirch-gravurtext");
++                        dragging = false;
++                        discard_delayed_snap_event();
++                        ret = true;
++                        return;
++                    }
++
+                     if (is<SPGroup>(clicked_item) && !is<SPBox3D>(clicked_item)) { // enter group if it's not a 3D box
+                         _desktop->layerManager().setCurrentLayer(clicked_item);
+                         _desktop->getSelection()->clear();
+diff --git a/src/ui/widget/combo-box-entry-tool-item.cpp b/src/ui/widget/combo-box-entry-tool-item.cpp
+index 04dc105..a8f1457 100644
+--- a/src/ui/widget/combo-box-entry-tool-item.cpp
++++ b/src/ui/widget/combo-box-entry-tool-item.cpp
+@@ -24,6 +24,8 @@
+  * we must keep track of things like active entry ourselves.
+  */
+ 
++#include <gtkmm/cellrendererpixbuf.h>
++#include "preferences.h"
+ #include "combo-box-entry-tool-item.h"
+ 
+ #include <cassert>
+@@ -77,8 +79,40 @@ ComboBoxEntryToolItem::ComboBoxEntryToolItem(Glib::ustring name, Glib::ustring l
+         _cell.emplace();
+         _cell->set_fixed_size(-1, 30);
+         _combobox.clear();
+-        _combobox.pack_start(*_cell, true);
+-        _combobox.set_cell_data_func(*_cell, [this] (auto &iter) { _cell_data_func(*_cell, iter, false); }); // without markup
++        if (get_name() == "TextFontFamilyAction") {
++            // Hirch CAM: Zellen nicht über alle Zeilen gleich breit – die Vorschau steht direkt hinter dem Namen
++            auto bereich = GTK_CELL_AREA_BOX(gtk_cell_layout_get_area(GTK_CELL_LAYOUT(_combobox.gobj())));
++            gtk_cell_area_box_pack_start(bereich, GTK_CELL_RENDERER(_cell->gobj()), FALSE, FALSE, FALSE);
++        } else {
++            _combobox.pack_start(*_cell, true);
++        }
++        // Hirch CAM: Schriftliste gleich mit Vorschau, sonst bemisst GTK die Zeilen ohne sie und schneidet sie ab
++        bool const mit = get_name() == "TextFontFamilyAction";
++        _combobox.set_cell_data_func(*_cell, [this, mit] (auto &iter) { _cell_data_func(*_cell, iter, mit); }); // without markup
++        // Hirch CAM (Peter 10.11.): Schriftliste des Textwerkzeugs – Vorschau der Einlinienschriften als Bild (gefüllt
++        // hätten sie keine Fläche; unter Windows kennt GTK sie nicht). Gleiches Bild wie in Sonderzeichen/Text und Schrift.
++        if (get_name() == "TextFontFamilyAction") {
++            _hirch_bild.emplace();
++            _hirch_bild->set_alignment(0.0, 0.5);
++            auto bereich = GTK_CELL_AREA_BOX(gtk_cell_layout_get_area(GTK_CELL_LAYOUT(_combobox.gobj())));
++            gtk_cell_area_box_pack_start(bereich, GTK_CELL_RENDERER(_hirch_bild->gobj()), TRUE, FALSE, FALSE);
++            _combobox.set_cell_data_func(*_hirch_bild, [this] (Gtk::TreeModel::const_iterator const &iter) {
++                auto lister = Inkscape::FontLister::get_instance();
++                Glib::ustring familie = (*iter)[lister->font_list.family];
++                auto prefs = Inkscape::Preferences::get();
++                bool zeigen = prefs->getInt("/tools/text/show_sample_in_list", 1) &&
++                              Inkscape::FontLister::ist_einlinie(familie);
++                _hirch_bild->set_visible(zeigen);
++                if (!zeigen) {
++                    _hirch_bild->property_pixbuf() = Glib::RefPtr<Gdk::Pixbuf>();
++                    return;
++                }
++                auto farbe = _combobox.get_style_context()->get_color(Gtk::STATE_FLAG_NORMAL);
++                bool dunkel = farbe.get_red() + farbe.get_green() + farbe.get_blue() > 1.5;
++                _hirch_bild->property_pixbuf() = Inkscape::FontLister::einlinie_bild(familie,
++                    prefs->getString("/tools/text/font_sample"), dunkel, 22);
++            });
++        }
+         g_signal_connect(_combobox.Glib::Object::gobj(), "popup", G_CALLBACK(+[] (GtkComboBox *, ComboBoxEntryToolItem *self) { // Fixme: Why is there no Gtkmm signal?
+             self->idle_conn = Glib::signal_idle().connect([self] {
+                 self->_combobox.set_cell_data_func(*self->_cell, [self] (auto &iter) { self->_cell_data_func(*self->_cell, iter, true); }); // with markup
+diff --git a/src/ui/widget/combo-box-entry-tool-item.h b/src/ui/widget/combo-box-entry-tool-item.h
+index 98f2491..b40f05f 100644
+--- a/src/ui/widget/combo-box-entry-tool-item.h
++++ b/src/ui/widget/combo-box-entry-tool-item.h
+@@ -27,6 +27,7 @@
+ #include <gtkmm/box.h>
+ #include <gtkmm/combobox.h>
+ #include <gtkmm/cellrenderertext.h>
++#include <gtkmm/cellrendererpixbuf.h>
+ #include <sigc++/signal.h>
+ #include "helper/auto-connection.h"
+ 
+@@ -95,6 +96,7 @@ private:
+     Glib::RefPtr<Gtk::EntryCompletion> _entry_completion;
+     Gtk::Widget        *_focusWidget; ///< The widget to return focus to
+     std::optional<Gtk::CellRendererText> _cell;
++    std::optional<Gtk::CellRendererPixbuf> _hirch_bild;   // Hirch CAM: Vorschau der Einlinienschriften
+ 
+     int                 _active = -1; // Index of active menu item (-1 if not in list).
+     Glib::ustring       _text; // Text of active menu item or entry box.
+diff --git a/src/ui/widget/font-selector.cpp b/src/ui/widget/font-selector.cpp
+index 277ebd9..a34d55f 100644
+--- a/src/ui/widget/font-selector.cpp
++++ b/src/ui/widget/font-selector.cpp
+@@ -9,6 +9,7 @@
+  */
+ 
+ #include "font-selector.h"
++#include "preferences.h"
+ 
+ #include <iostream>
+ #include <stdexcept>
+@@ -58,7 +59,30 @@ FontSelector::FontSelector (bool with_size, bool with_variations)
+     Glib::RefPtr<Gtk::TreeModel> model = font_lister->get_font_list();
+ 
+     // Font family
+-    family_treecolumn.pack_start (family_cell, false);
++    // Hirch CNC: Zellen nicht über alle Zeilen gleich breit – die Vorschau der Einlinienschriften
++    // steht so direkt hinter ihrem Namen
++    {
++        auto bereich = GTK_CELL_AREA_BOX(gtk_cell_layout_get_area(GTK_CELL_LAYOUT(family_treecolumn.gobj())));
++        gtk_cell_area_box_pack_start(bereich, GTK_CELL_RENDERER(family_cell.gobj()), FALSE, FALSE, FALSE);
++        gtk_cell_area_box_pack_start(bereich, GTK_CELL_RENDERER(hirch_bild.gobj()), FALSE, FALSE, FALSE);
++    }
++    // Hirch CNC: Einlinienschriften haben gefüllt keine Fläche – ihre Vorschau als gezogene Striche
++    hirch_bild.set_alignment(0.0, 0.5);
++    family_treecolumn.set_cell_data_func (hirch_bild, [this](Gtk::CellRenderer *zelle, Gtk::TreeModel::const_iterator const &iter) {
++        auto lister = Inkscape::FontLister::get_instance();
++        Glib::ustring familie = (*iter)[lister->font_list.family];
++        auto prefs = Inkscape::Preferences::get();
++        bool zeigen = prefs->getInt("/tools/text/show_sample_in_list", 1) && Inkscape::FontLister::ist_einlinie(familie);
++        zelle->set_visible(zeigen);
++        if (!zeigen) {
++            zelle->set_property("pixbuf", Glib::RefPtr<Gdk::Pixbuf>());
++            return;
++        }
++        auto farbe = family_treeview.get_style_context()->get_color(Gtk::STATE_FLAG_NORMAL);
++        bool dunkel = farbe.get_red() + farbe.get_green() + farbe.get_blue() > 1.5;   // helle Schrift: dunkles Thema
++        zelle->set_property("pixbuf", Inkscape::FontLister::einlinie_bild(familie,
++            prefs->getString("/tools/text/font_sample"), dunkel, 22));
++    });
+     int total = model->children().size();
+     int height = 30;
+     if (total > 1000) {
+@@ -84,7 +108,8 @@ FontSelector::FontSelector (bool with_size, bool with_variations)
+     family_treeview.set_headers_visible (false);
+     family_treeview.append_column (family_treecolumn);
+ 
+-    family_scroll.set_policy (Gtk::POLICY_NEVER, Gtk::POLICY_AUTOMATIC);
++    // Hirch CAM: die Vorschau der Schrift darf die Spalte nicht verbreitern (Sonderzeichen war breiter als die Spalte)
++    family_scroll.set_policy (Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC);
+     family_scroll.add (family_treeview);
+ 
+     family_frame.set_hexpand (true);
+@@ -102,6 +127,10 @@ FontSelector::FontSelector (bool with_size, bool with_variations)
+     style_treeview.set_name ("FontSelectorStyle");
+     style_treeview.append_column ("CSS", font_lister->font_style_list.cssStyle);
+     style_treeview.append_column (style_treecolumn);
++    // Hirch CAM: keine englischen Spaltenköpfe («CSS», «Face») und den Stil nur einmal («Normal Normal»): die
++    // Spalte in der Schrift selbst bleibt bei Einlinienschriften leer, darum nur die Textspalte
++    style_treeview.set_headers_visible (false);
++    style_treecolumn.set_visible (false);
+ 
+     style_treeview.get_column(0)->set_resizable (true);
+ 
+diff --git a/src/ui/widget/font-selector.h b/src/ui/widget/font-selector.h
+index e224c48..5797575 100644
+--- a/src/ui/widget/font-selector.h
++++ b/src/ui/widget/font-selector.h
+@@ -32,6 +32,7 @@
+ #define INKSCAPE_UI_WIDGET_FONT_SELECTOR_H
+ 
+ #include <gtkmm/cellrenderertext.h>
++#include <gtkmm/cellrendererpixbuf.h>
+ #include <gtkmm/comboboxtext.h>
+ #include <gtkmm/frame.h>
+ #include <gtkmm/grid.h>
+@@ -85,6 +86,7 @@ protected:
+     Gtk::TreeView       family_treeview;
+     Gtk::TreeViewColumn family_treecolumn;
+     Gtk::CellRendererText family_cell;
++    Gtk::CellRendererPixbuf hirch_bild;   // Hirch CNC: Vorschau der Einlinienschriften
+ 
+     // Font style
+     Gtk::Frame          style_frame;

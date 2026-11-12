@@ -1,0 +1,34 @@
+{
+  "name": "PlanetCNC TNG (mm, .nc)",
+  "beschreibung": "PlanetCNC TNG (Steuerungen Mk3, Mk4, Mk5 von PlanetCNC). Werkzeugwechsel mit T…M6: ist der Werkzeugwechsel in TNG eingeschaltet, fährt die Maschine zur Wechselstelle und wartet auf die Bestätigung (auf Wunsch mit Längenmessung); danach Z neu antasten, wenn nicht gemessen wird. Bögen G2/G3. Bohrungen als einzelne Bewegungen (die Bohrzyklen sind nicht nachgeprüft). Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "kopf": [
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G17 G40 G80"
+  ],
+  "werkzeug": [
+    "T{t} M6 ({werkzeug})",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{sicher}"
+  ],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

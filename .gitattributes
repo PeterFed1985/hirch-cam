@@ -1,0 +1,5 @@
+# Zeilenenden immer LF: Patches und Skripte müssen unverändert bleiben
+* text=auto eol=lf
+*.patch -text
+*.ico binary
+*.gz binary

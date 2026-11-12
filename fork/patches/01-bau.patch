@@ -1,0 +1,113 @@
+diff --git a/share/CMakeLists.txt b/share/CMakeLists.txt
+index b778803..5dfdff9 100644
+--- a/share/CMakeLists.txt
++++ b/share/CMakeLists.txt
+@@ -65,11 +65,8 @@ endif()
+ 
+ 
+ # themes (git submodule!)
+-install(DIRECTORY themes DESTINATION ${INKSCAPE_SHARE_INSTALL}
+-    COMPONENT themes
+-    PATTERN ".git*" EXCLUDE
+-    PATTERN "*.md" EXCLUDE
+-)
++# Hirch CAM (Windows a391aa9 Fund 2): kein «Minwaita-Inkscape» in der Themenliste – Hirch CAM nutzt Adwaita
++# (hell und dunkel über Ansicht › Dunkle Darstellung)
+ 
+ 
+ # appdata and desktop files, bash completions
+diff --git a/share/keys/CMakeLists.txt b/share/keys/CMakeLists.txt
+index 0d770cd..0fd93e9 100644
+--- a/share/keys/CMakeLists.txt
++++ b/share/keys/CMakeLists.txt
+@@ -1,6 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0-or-later
+-file(GLOB _FILES "*.xml")
+-install(FILES ${_FILES} DESTINATION ${INKSCAPE_SHARE_INSTALL}/keys)
++# Hirch CAM: nur der eigene Tastensatz (Windows 07.11.: keine Sätze mit Firmennamen in den Einstellungen)
++install(FILES inkscape.xml DESTINATION ${INKSCAPE_SHARE_INSTALL}/keys)
+ 
+ # install a duplicate of inkscape.xml as default.xml
+ #   default.xml is the default keymap that will be used by inkscape after installation
+diff --git a/src/libnrtype/CMakeLists.txt b/src/libnrtype/CMakeLists.txt
+index e66681a..9dc99fe 100644
+--- a/src/libnrtype/CMakeLists.txt
++++ b/src/libnrtype/CMakeLists.txt
+@@ -4,6 +4,7 @@ set(nrtype_SRC
+ 	font-factory.cpp
+ 	font-instance.cpp
+ 	font-lister.cpp
++	hirch-font-lister.cpp
+ 	Layout-TNG.cpp
+ 	Layout-TNG-Compute.cpp
+ 	Layout-TNG-Input.cpp
+diff --git a/src/ui/CMakeLists.txt b/src/ui/CMakeLists.txt
+index 6e8a3b7..07779b5 100644
+--- a/src/ui/CMakeLists.txt
++++ b/src/ui/CMakeLists.txt
+@@ -153,6 +153,44 @@ set(ui_SRC
+ 	dialog/lpe-fillet-chamfer-properties.cpp
+ 	dialog/lpe-powerstroke-properties.cpp
+ 	dialog/memory.cpp
++	hirch-start-win32.cpp
++	dialog/hirch-erlaubt.cpp
++	dialog/hirch-vorgaben.cpp
++	dialog/hirch-maschinen.cpp
++	dialog/hirch-rueckfrage.cpp
++	dialog/hirch-fraesen.cpp
++	dialog/hirch-3d.cpp
++	dialog/hirch-3d-grund.cpp
++	dialog/hirch-3d-einlesen.cpp
++	dialog/hirch-3d-ansicht.cpp
++	dialog/hirch-3d-anlegen.cpp
++	dialog/hirch-3d-dialoge.cpp
++	dialog/hirch-3d-teil.cpp
++	dialog/hirch-3d-fenster.cpp
++	dialog/hirch-aktionen.cpp
++	dialog/hirch-ausgabe.cpp
++	dialog/hirch-rueckmeldung.cpp
++	dialog/hirch-bearbeitung.cpp
++	dialog/hirch-dialoge.cpp
++	dialog/hirch-werkzeugdialog.cpp
++	dialog/hirch-auftragdialog.cpp
++	dialog/hirch-einstellungen.cpp
++	dialog/hirch-gravur.cpp
++	dialog/hirch-import.cpp
++	dialog/hirch-leiste.cpp
++	dialog/hirch-panel.cpp
++	dialog/hirch-panel-leinwand.cpp
++	dialog/hirch-panel-liste.cpp
++	dialog/hirch-panel-anzeigen.cpp
++	dialog/hirch-rille.cpp
++	dialog/hirch-messkorrektur.cpp
++	dialog/hirch-sprache.cpp
++	dialog/hirch-test.cpp
++	dialog/hirch-vorschau.cpp
++	dialog/hirch-abtrag.cpp
++	dialog/hirch-ansicht.cpp
++	toolbar/hirch-select-toolbar.cpp
++	toolbar/hirch-arc-toolbar.cpp
+ 	dialog/messages.cpp
+ 	dialog/new-from-template.cpp
+ 	dialog/object-attributes.cpp
+@@ -356,6 +394,20 @@ set(ui_SRC
+ 	dialog/lpe-fillet-chamfer-properties.h
+ 	dialog/lpe-powerstroke-properties.h
+ 	dialog/memory.h
++	dialog/hirch-fraesen.h
++	dialog/hirch-3d.h
++	dialog/hirch-3d-intern.h
++	dialog/hirch-intern.h
++	dialog/hirch-grund.h
++	dialog/hirch-oberflaeche.h
++	dialog/hirch-skizzen.h
++	dialog/hirch-dienst.h
++	dialog/hirch-hilfen.h
++	dialog/hirch-panel-impl.h
++	dialog/hirch-sprache.h
++	dialog/hirch-vorschau.h
++	dialog/hirch-abtrag.h
++	dialog/hirch-rueckmeldung.h
+ 	dialog/messages.h
+ 	dialog/new-from-template.h
+ 	dialog/object-attributes.h

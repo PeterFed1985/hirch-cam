@@ -1,0 +1,48 @@
+{
+  "name": "EdingCNC (mm, .nc)",
+  "beschreibung": "EdingCNC (Eding CNC, Niederlande; Steuerkarten CPU5A, EC300/EC500). Werkzeugwechsel mit M6 T…: die Steuerung hält an und bittet um den Wechsel, «Run» läuft weiter (ausser «AutoToolChange» ist eingeschaltet); danach Z neu antasten. Bohrzyklen G81/G82/G83 mit G98, Bögen G2/G3 mit I/J relativ zum Startpunkt (Vorgabe der Steuerung). Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "bohrzyklus": {
+    "entspanen": [
+      "G98 G83 X{x} Y{y} Z{z} R{r} Q{q} F{f}"
+    ],
+    "einfach": [
+      "G98 G81 X{x} Y{y} Z{z} R{r} F{f}"
+    ],
+    "verweilen": [
+      "G98 G82 X{x} Y{y} Z{z} R{r} P{p} F{f}"
+    ],
+    "ende": [
+      "G80"
+    ]
+  },
+  "kopf": [
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G17 G40 G80"
+  ],
+  "werkzeug": [
+    "M6 T{t} ({werkzeug})",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{sicher}"
+  ],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

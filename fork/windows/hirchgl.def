@@ -1,0 +1,5 @@
+LIBRARY hirchgl.dll
+EXPORTS
+    wglDeleteContext = hirch_wglDeleteContext
+    wglGetCurrentContext = hirch_wglGetCurrentContext
+    wglMakeCurrent = hirch_wglMakeCurrent

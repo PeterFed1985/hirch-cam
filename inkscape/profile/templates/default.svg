@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Neue Zeichnung in Hirch CNC: 300 x 200 mm, 1 Einheit = 1 mm.
+     Nullpunkt der Maschine = linke untere Ecke der Seite. -->
+<svg
+   width="300mm"
+   height="200mm"
+   viewBox="0 0 300 200"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:hirch="https://hirch.net/cnc"
+   hirch:materialdicke="18">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#f3e9d8"
+     bordercolor="#8a6d45"
+     borderopacity="1"
+     inkscape:pageopacity="1"
+     inkscape:document-units="mm"
+     units="mm"
+     showgrid="false"
+     inkscape:zoom="1">
+    <inkscape:page x="0" y="0" width="300" height="200" id="page1" />
+  </sodipodi:namedview>
+  <g inkscape:label="Zeichnung" inkscape:groupmode="layer" id="layer1" />
+</svg>

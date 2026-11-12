@@ -1,0 +1,700 @@
+diff --git a/src/extension/extension.h b/src/extension/extension.h
+index 66a8b68..843ce16 100644
+--- a/src/extension/extension.h
++++ b/src/extension/extension.h
+@@ -51,6 +51,9 @@ class Widget;
+ #define SP_MODULE_KEY_OUTPUT_SVGZ "org.inkscape.output.svgz.plain"
+ /** This is an output file that has SVG data with the Sodipodi namespace extensions */
+ #define SP_MODULE_KEY_OUTPUT_SVG_INKSCAPE "org.inkscape.output.svg.inkscape"
++// Hirch CNC: eigene Dateiendung .hir (Inhalt wie Inkscape-SVG)
++#define SP_MODULE_KEY_INPUT_HIRCH "org.inkscape.input.svg.hirch"
++#define SP_MODULE_KEY_OUTPUT_HIRCH "org.inkscape.output.svg.hirch"
+ #define SP_MODULE_KEY_OUTPUT_SVGZ_INKSCAPE "org.inkscape.output.svgz.inkscape"
+ /** Which output module should be used? */
+ #define SP_MODULE_KEY_OUTPUT_DEFAULT SP_MODULE_KEY_AUTODETECT
+diff --git a/src/extension/internal/pdfinput/pdf-input.cpp b/src/extension/internal/pdfinput/pdf-input.cpp
+index 45df931..8dbaba0 100644
+--- a/src/extension/internal/pdfinput/pdf-input.cpp
++++ b/src/extension/internal/pdfinput/pdf-input.cpp
+@@ -783,7 +783,9 @@ PdfInput::open(::Inkscape::Extension::Input *mod, const gchar * uri, bool /*is_i
+ 
+     // Set viewBox if it doesn't exist
+     if (!doc->getRoot()->viewBox_set) {
+-        doc->setViewBox(Geom::Rect::from_xywh(0, 0, doc->getWidth().value(doc->getDisplayUnit()), doc->getHeight().value(doc->getDisplayUnit())));
++        // Hirch CAM: der Inhalt steht in px – die viewBox auch (nicht in der Anzeige-Einheit, sonst ist die
++        // Zeichnung in Zoll 96-mal zu gross, Windows 10.11.)
++        doc->setViewBox(Geom::Rect::from_xywh(0, 0, doc->getWidth().value("px"), doc->getHeight().value("px")));
+     }
+ 
+     // Restore undo
+diff --git a/src/extension/internal/svg.cpp b/src/extension/internal/svg.cpp
+index 29c035d..14734c0 100644
+--- a/src/extension/internal/svg.cpp
++++ b/src/extension/internal/svg.cpp
+@@ -72,10 +72,43 @@ Svg::init()
+                 "<extension>.svg</extension>\n"
+                 "<mimetype>image/svg+xml</mimetype>\n"
+                 "<filetypename>" N_("Scalable Vector Graphic (*.svg)") "</filetypename>\n"
+-                "<filetypetooltip>" N_("Inkscape native file format and W3C standard") "</filetypetooltip>\n"
++                "<filetypetooltip>" N_("W3C standard vector format") "</filetypetooltip>\n"
+             "</input>\n"
+         "</inkscape-extension>", std::make_unique<Svg>());
+ 
++    /* Hirch CNC: Zeichnung mit eigener Endung (Inhalt = Inkscape-SVG), damit sich die Dateien Hirch CNC
++       zuordnen lassen (Peter 27.10.) */
++    Inkscape::Extension::build_from_mem(
++        "<inkscape-extension xmlns=\"" INKSCAPE_EXTENSION_URI "\">\n"
++            "<name>Hirch CAM Input</name>\n"
++            "<id>" SP_MODULE_KEY_INPUT_HIRCH "</id>\n"
++            SVG_COMMON_INPUT_PARAMS
++            "<input priority='-1'>\n"
++                "<extension>.hir</extension>\n"
++                "<mimetype>application/x-hirch-cam</mimetype>\n"
++                "<filetypename>" N_("Hirch CAM drawing (*.hir)") "</filetypename>\n"
++                "<filetypetooltip>" N_("Hirch CAM file format (SVG inside)") "</filetypetooltip>\n"
++            "</input>\n"
++        "</inkscape-extension>", std::make_unique<Svg>());
++
++    Inkscape::Extension::build_from_mem(
++        "<inkscape-extension xmlns=\"" INKSCAPE_EXTENSION_URI "\">\n"
++            "<name>Hirch CAM Output</name>\n"
++            "<id>" SP_MODULE_KEY_OUTPUT_HIRCH "</id>\n"
++            "<output is_exported='false' priority='-1'>\n"
++                "<extension>.hir</extension>\n"
++                "<mimetype>application/x-hirch-cam</mimetype>\n"
++                "<filetypename>" N_("Hirch CAM drawing (*.hir)") "</filetypename>\n"
++                "<filetypetooltip>" N_("Hirch CAM file format (SVG inside)") "</filetypetooltip>\n"
++                "<dataloss>false</dataloss>\n"
++            "</output>\n"
++            "<action>prune-proprietary-namespaces</action>\n"
++            "<action>set-svg-version-2</action>\n"
++            "<action pref='!/dialogs/save_as/enable_svgexport'>reverse-auto-start-markers</action>\n"
++            "<action pref='!/dialogs/save_as/enable_svgexport'>remove-marker-context-paint</action>\n"
++            "<action pref='!/dialogs/save_as/enable_svgexport'>set-svg-version-1</action>\n"
++        "</inkscape-extension>", std::make_unique<Svg>());
++
+     /* SVG out Inkscape */
+     Inkscape::Extension::build_from_mem(
+         "<inkscape-extension xmlns=\"" INKSCAPE_EXTENSION_URI "\">\n"
+@@ -84,8 +117,8 @@ Svg::init()
+             "<output is_exported='true' priority='1'>\n"
+                 "<extension>.svg</extension>\n"
+                 "<mimetype>image/x-inkscape-svg</mimetype>\n"
+-                "<filetypename>" N_("Inkscape SVG (*.svg)") "</filetypename>\n"
+-                "<filetypetooltip>" N_("SVG format with Inkscape extensions") "</filetypetooltip>\n"
++                "<filetypename>" N_("SVG with Hirch data (*.svg)") "</filetypename>\n"
++                "<filetypetooltip>" N_("SVG with layers and drawing settings") "</filetypetooltip>\n"
+                 "<dataloss>false</dataloss>\n"
+             "</output>\n"
+             "<action>prune-proprietary-namespaces</action>\n"
+diff --git a/src/extension/internal/svgz.cpp b/src/extension/internal/svgz.cpp
+index 5db2c1f..f685c97 100644
+--- a/src/extension/internal/svgz.cpp
++++ b/src/extension/internal/svgz.cpp
+@@ -49,7 +49,7 @@ Svgz::init()
+             "<input priority='2'>\n"
+                 "<extension>.svgz</extension>\n"
+                 "<mimetype>image/svg+xml-compressed</mimetype>\n"
+-                "<filetypename>" N_("Compressed Inkscape SVG (*.svgz)") "</filetypename>\n"
++                "<filetypename>" N_("Compressed SVG (*.svgz)") "</filetypename>\n"
+                 "<filetypetooltip>" N_("SVG file format compressed with GZip") "</filetypetooltip>\n"
+             "</input>\n"
+         "</inkscape-extension>", std::make_unique<Svgz>());
+@@ -62,8 +62,8 @@ Svgz::init()
+             "<output priority='3'>\n"
+                 "<extension>.svgz</extension>\n"
+                 "<mimetype>image/x-inkscape-svg-compressed</mimetype>\n"
+-                "<filetypename>" N_("Compressed Inkscape SVG (*.svgz)") "</filetypename>\n"
+-                "<filetypetooltip>" N_("Inkscape's native file format compressed with GZip") "</filetypetooltip>\n"
++                "<filetypename>" N_("Compressed SVG (*.svgz)") "</filetypename>\n"
++                "<filetypetooltip>" N_("SVG with Hirch data, compressed with GZip") "</filetypetooltip>\n"
+                 "<dataloss>false</dataloss>\n"
+             "</output>\n"
+         "</inkscape-extension>", std::make_unique<Svgz>());
+diff --git a/src/extension/system.cpp b/src/extension/system.cpp
+index 41117c9..932e6e4 100644
+--- a/src/extension/system.cpp
++++ b/src/extension/system.cpp
+@@ -489,15 +489,16 @@ get_file_save_extension (Inkscape::Extension::FileSaveMethod method) {
+             extension = prefs->getString("/dialogs/save_copy/default");
+             break;
+         case FILE_SAVE_METHOD_INKSCAPE_SVG:
+-            extension = SP_MODULE_KEY_OUTPUT_SVG_INKSCAPE;
++            extension = SP_MODULE_KEY_OUTPUT_HIRCH;          // Hirch CNC: neue Zeichnungen als .hir
+             break;
+         case FILE_SAVE_METHOD_EXPORT:
+             /// \todo no default extension set for Export? defaults to SP_MODULE_KEY_OUTPUT_SVG_INKSCAPE is ok?
+             break;
+     }
+ 
+-    if(extension.empty()) {
+-        extension = SP_MODULE_KEY_OUTPUT_SVG_INKSCAPE;
++    // Hirch CNC: Vorgabe ist die eigene Endung, auch wenn früher «Inkscape-SVG» gespeichert war
++    if (extension.empty() || extension == SP_MODULE_KEY_OUTPUT_SVG_INKSCAPE) {
++        extension = SP_MODULE_KEY_OUTPUT_HIRCH;
+     }
+ 
+     return extension;
+diff --git a/src/file.cpp b/src/file.cpp
+index 7388de3..b61c7c9 100644
+--- a/src/file.cpp
++++ b/src/file.cpp
+@@ -41,6 +41,8 @@
+ #include "extension/input.h"
+ #include "extension/output.h"
+ #include "file.h"
++#include "ui/dialog/hirch-fraesen.h"  // Hirch CNC: Versionen
++#include "util/units.h"
+ #include "id-clash.h"
+ #include "inkscape-application.h"
+ #include "inkscape-version.h"
+@@ -329,6 +331,9 @@ file_save(Gtk::Window &parentWindow,
+         g_message("file_save: SP_ACTIVE_DESKTOP == NULL. please report to bug #967416");
+     }
+ 
++    // Hirch CNC: datierte Kopie im Unterordner «.versionen» (die letzten 20)
++    if (official) hirch_version_sichern(path);
++
+     auto font_lister = Inkscape::FontLister::get_instance();
+     auto recently_used = Inkscape::RecentlyUsedFonts::get();
+     recently_used->prepend_to_list(font_lister->get_font_family());
+@@ -422,6 +427,14 @@ sp_file_save_dialog(Gtk::Window &parentWindow, SPDocument *doc, Inkscape::Extens
+ 
+     auto file = saveDialog->getFile();
+     Inkscape::Extension::Extension *selectionType = saveDialog->getExtension();
++    // Hirch CNC: Name ohne Endung → Endung des gewählten Formats anhängen (sonst entstand eine Datei ohne
++    // Endung, die sich keinem Programm zuordnen lässt)
++    if (auto out = dynamic_cast<Inkscape::Extension::Output *>(selectionType); out && file) {
++        auto name = file->get_basename();
++        if (name.find('.') == std::string::npos && out->get_extension()) {
++            file = Gio::File::create_for_path(file->get_path() + out->get_extension());
++        }
++    }
+ 
+     delete saveDialog;
+     saveDialog = nullptr;
+@@ -814,6 +827,9 @@ file_import(SPDocument *in_doc, const std::string &path, Inkscape::Extension::Ex
+     bool cancelled = false;
+     auto prefs = Inkscape::Preferences::get();
+ 
++    // Hirch CAM: Zusatzformate öffnet das Fräsen-Panel als eigene Zeichnung
++    if (hirch_zusatz_oeffnen(path)) return nullptr;
++
+     // Store mouse pointer location before opening any dialogs, so we can drop the item where initially intended.
+     auto pointer_location = desktop->point();
+ 
+@@ -857,7 +873,9 @@ file_import(SPDocument *in_doc, const std::string &path, Inkscape::Extension::Ex
+ 
+         // The extension should set it's pages enabled or disabled when opening
+         // in order to indicate if pages are being imported or if objects are.
+-        if (doc->getPageManager().hasPages()) {
++        // Hirch CAM: Seiten sind Platten – ein Import kommt immer als Objekte in die Zeichnung (und wird danach
++        // aufgeräumt); «Seiten importieren» aus dem PDF-Dialog legte eine zweite Platte an (Windows 10.11.)
++        if (false && doc->getPageManager().hasPages()) {
+             file_import_pages(in_doc, doc);
+             DocumentUndo::done(in_doc, _("Import Pages"), INKSCAPE_ICON("document-import"));
+             // This return is only used by dbus in document-interface.cpp (now removed).
+@@ -948,6 +966,18 @@ file_import(SPDocument *in_doc, const std::string &path, Inkscape::Extension::Ex
+             Geom::Affine affine = doc->getRoot()->c2p * cast<SPItem>(place_to_insert)->i2doc_affine().inverse();
+             selection->applyAffine(desktop->dt2doc() * affine * desktop->doc2dt(), true, false, false);
+ 
++            // Hirch CNC: CAD-Zeichnungen (DXF, HPGL) behalten ihre Koordinaten –
++            // ihr Nullpunkt liegt auf der linken unteren Ecke der Seite
++            // (= Maschinennullpunkt). Alles andere kommt an den Mauszeiger.
++            auto endung = Glib::ustring(path).lowercase();
++            bool cad = g_str_has_suffix(endung.c_str(), ".dxf") || g_str_has_suffix(endung.c_str(), ".plt") ||
++                       g_str_has_suffix(endung.c_str(), ".hpgl");
++            if (cad) {
++                desktop->getDocument()->ensureUpToDate();
++                double d = in_doc->getHeight().value("px") - doc->getHeight().value("px");
++                Geom::Point v = Geom::Point(0, d) * desktop->doc2dt().withoutTranslation();
++                selection->moveRelative(v, false);
++            } else
+             // move to mouse pointer
+             {
+                 desktop->getDocument()->ensureUpToDate();
+@@ -960,6 +990,7 @@ file_import(SPDocument *in_doc, const std::string &path, Inkscape::Extension::Ex
+         }
+         
+         DocumentUndo::done(in_doc, _("Import"), INKSCAPE_ICON("document-import"));
++        hirch_nach_import(path);   // Hirch CNC: DXF/AI/PDF aufräumen
+         return new_obj;
+     } else if (!cancelled) {
+         gchar *text = g_strdup_printf(_("Failed to load the requested file %s"), path.c_str());
+diff --git a/src/helper/choose-file.cpp b/src/helper/choose-file.cpp
+index 48fbfbb..bb063db 100644
+--- a/src/helper/choose-file.cpp
++++ b/src/helper/choose-file.cpp
+@@ -6,11 +6,32 @@
+ #include <gtkmm/filechooser.h>
+ #include <gtkmm/filechooserdialog.h>
+ #include <glibmm/miscutils.h>
++#ifdef _WIN32
++#include <algorithm>
++#include <giomm/contenttype.h>
++#include <gtkmm/filechoosernative.h>
++#endif
+ 
+ #include "ui/dialog-run.h"
+ 
+ namespace Inkscape {
+ 
++#ifdef _WIN32
++// Hirch CNC: unter Windows das Fenster von Windows (wie filedialogimpl-gtkmm.h). MIME-Typen versteht es nicht
++// (GTK fiele auf sein eigenes Fenster zurück) – darum die Endung dazu als Muster.
++static void hirch_mime_muster(Glib::RefPtr<Gtk::FileFilter> const &filter, Glib::ustring const &mime)
++{
++    auto typ = Gio::content_type_from_mime_type(mime); // unter Windows die Endung, z. B. «.png»
++    filter->add_pattern(!typ.empty() && typ[0] == '.' ? "*" + typ : Glib::ustring("*"));
++}
++
++static std::string hirch_ordner(std::string ordner)
++{
++    std::replace(ordner.begin(), ordner.end(), '/', '\\');
++    return ordner;
++}
++#endif
++
+ std::string choose_file_save(Glib::ustring const &title, Gtk::Window *parent,
+                              Glib::ustring const &mime_type,
+                              Glib::ustring const &file_name,
+@@ -22,6 +43,16 @@ std::string choose_file_save(Glib::ustring const &title, Gtk::Window *parent,
+         current_folder = Glib::get_home_dir();
+     }
+ 
++#ifdef _WIN32
++    auto nativ = Gtk::FileChooserNative::create(title, *parent, Gtk::FILE_CHOOSER_ACTION_SAVE, _("Save"), _("Cancel"));
++    Gtk::FileChooser &dlg = *nativ.get();
++    constexpr int save_id = Gtk::RESPONSE_ACCEPT;
++    auto filter = Gtk::FileFilter::create();
++    hirch_mime_muster(filter, mime_type);
++    dlg.add_filter(filter);
++    dlg.set_filter(filter);
++    dlg.set_current_folder(hirch_ordner(current_folder));
++#else
+     Gtk::FileChooserDialog dlg(*parent, title, Gtk::FILE_CHOOSER_ACTION_SAVE);
+     constexpr int save_id = Gtk::RESPONSE_OK;
+     dlg.add_button(_("Cancel"), Gtk::RESPONSE_CANCEL);
+@@ -31,16 +62,25 @@ std::string choose_file_save(Glib::ustring const &title, Gtk::Window *parent,
+     filter->add_mime_type(mime_type);
+     dlg.set_filter(filter);
+     dlg.set_current_folder(current_folder);
++#endif
+     dlg.set_current_name(file_name);
+     dlg.set_do_overwrite_confirmation();
+ 
++#ifdef _WIN32
++    auto id = nativ->run();
++#else
+     auto id = UI::dialog_run(dlg);
++#endif
+     if (id != save_id) return {};
+ 
+     auto fname = dlg.get_filename();
+     if (fname.empty()) return {};
+ 
++#ifdef _WIN32
++    current_folder = Glib::path_get_dirname(fname); // das Windows-Fenster meldet keinen Ordner
++#else
+     current_folder = dlg.get_current_folder();
++#endif
+ 
+     return fname;
+ }
+@@ -57,11 +97,17 @@ std::string _choose_file_open(Glib::ustring const &title, Gtk::Window *parent,
+         current_folder = Glib::get_home_dir();
+     }
+ 
++#ifdef _WIN32
++    auto nativ = Gtk::FileChooserNative::create(title, *parent, Gtk::FILE_CHOOSER_ACTION_OPEN, _("Open"), _("Cancel"));
++    Gtk::FileChooser &dlg = *nativ.get();
++    constexpr int open_id = Gtk::RESPONSE_ACCEPT;
++#else
+     Gtk::FileChooserDialog dlg(*parent, title, Gtk::FILE_CHOOSER_ACTION_OPEN);
+     constexpr int open_id = Gtk::RESPONSE_OK;
+     dlg.add_button(_("Cancel"), Gtk::RESPONSE_CANCEL);
+     dlg.add_button(_("Open"), open_id);
+     dlg.set_default_response(open_id);
++#endif
+ 
+     if (!filters.empty()) {
+         auto all_supported = Gtk::FileFilter::create();
+@@ -79,20 +125,35 @@ std::string _choose_file_open(Glib::ustring const &title, Gtk::Window *parent,
+     else {
+         auto filter = Gtk::FileFilter::create();
+         for (auto const &t : mime_types) {
++#ifdef _WIN32
++            hirch_mime_muster(filter, t);
++#else
+             filter->add_mime_type(t);
++#endif
+         }
++#ifdef _WIN32
++        dlg.add_filter(filter);
++#endif
+         dlg.set_filter(filter);
+     }
+ 
++#ifdef _WIN32
++    dlg.set_current_folder(hirch_ordner(current_folder));
++    auto id = nativ->run();
++#else
+     dlg.set_current_folder(current_folder);
+-
+     auto id = UI::dialog_run(dlg);
++#endif
+     if (id != open_id) return {};
+ 
+     auto fname = dlg.get_filename();
+     if (fname.empty()) return {};
+ 
++#ifdef _WIN32
++    current_folder = Glib::path_get_dirname(fname); // das Windows-Fenster meldet keinen Ordner
++#else
+     current_folder = dlg.get_current_folder();
++#endif
+ 
+     return fname;
+ }
+diff --git a/src/ui/dialog/filedialog.cpp b/src/ui/dialog/filedialog.cpp
+index c6e997c..367678c 100644
+--- a/src/ui/dialog/filedialog.cpp
++++ b/src/ui/dialog/filedialog.cpp
+@@ -138,7 +138,7 @@ FileOpenDialog *FileOpenDialog::create(Gtk::Window &parentWindow,
+                                        FileDialogType fileTypes,
+                                        const char *title)
+ {
+-#ifdef _WIN32
++#if 0 // Hirch CNC: unter Windows FileDialog*ImplGtk mit FileChooserNative (filedialogimpl-gtkmm.h)
+     if (Inkscape::Preferences::get()->getBool( "/options/desktopintegration/value")) {
+         return new FileOpenDialogImplWin32(parentWindow, path, fileTypes, title);
+     }
+@@ -162,7 +162,7 @@ FileSaveDialog *FileSaveDialog::create(Gtk::Window& parentWindow,
+                                        const gchar *docTitle,
+                                        const Inkscape::Extension::FileSaveMethod save_method)
+ {
+-#ifdef _WIN32
++#if 0 // Hirch CNC: unter Windows FileDialog*ImplGtk mit FileChooserNative (filedialogimpl-gtkmm.h)
+     if (Inkscape::Preferences::get()->getBool( "/options/desktopintegration/value")) {
+         return new FileSaveDialogImplWin32(parentWindow, path, fileTypes, title, default_key, docTitle, save_method);
+     }
+diff --git a/src/ui/dialog/filedialogimpl-gtkmm.cpp b/src/ui/dialog/filedialogimpl-gtkmm.cpp
+index 1327b7b..5e9aeca 100644
+--- a/src/ui/dialog/filedialogimpl-gtkmm.cpp
++++ b/src/ui/dialog/filedialogimpl-gtkmm.cpp
+@@ -19,7 +19,9 @@
+  */
+ 
+ #include "filedialogimpl-gtkmm.h"
++#include "ui/dialog/hirch-erlaubt.h"
+ 
++#include <algorithm>
+ #include <glibmm/convert.h>
+ #include <glibmm/fileutils.h>
+ #include <glibmm/i18n.h>
+@@ -47,7 +49,7 @@ FileDialogBaseGtk::FileDialogBaseGtk(Gtk::Window &parentWindow, Glib::ustring co
+                                      Gtk::FileChooserAction const dialogType,
+                                      FileDialogType const type,
+                                      char const * const preferenceBase)
+-#ifdef LINUX_SNAP_PACKAGE
++#ifdef HIRCH_NATIVER_DATEIDIALOG
+     // the snap package uses the native file dialog (which is then redirected via XDG desktop portal)
+     : Gtk::FileChooserNative(title, parentWindow, dialogType, accept_label(dialogType), cancel_label())
+ #else
+@@ -80,6 +82,11 @@ Glib::RefPtr<Gtk::FileFilter> FileDialogBaseGtk::addFilter(const Glib::ustring &
+ // Replace this with add_suffix in Gtk4
+ Glib::ustring FileDialogBaseGtk::extToPattern(const Glib::ustring &extension) const
+ {
++#ifdef _WIN32
++    // Hirch CNC: das Windows-Fenster kennt keine [Aa]-Muster (sonst Endung «.[Hh][Ii][Rr]»);
++    // Windows unterscheidet ohnehin nicht nach Gross- und Kleinschreibung
++    return "*" + extension.lowercase();
++#endif
+     Glib::ustring pattern = "*";
+     for (unsigned int ch : extension) {
+         if (Glib::Unicode::isalpha(ch)) {
+@@ -94,7 +101,7 @@ Glib::ustring FileDialogBaseGtk::extToPattern(const Glib::ustring &extension) co
+     return pattern;
+ }
+ 
+-#ifdef LINUX_SNAP_PACKAGE
++#ifdef HIRCH_NATIVER_DATEIDIALOG
+ // Small function so the translatable strings stay out of the header
+ const char * FileDialogBaseGtk::accept_label(Gtk::FileChooserAction dialogType)
+  {
+@@ -139,6 +146,9 @@ FileOpenDialogImplGtk::FileOpenDialogImplGtk(Gtk::Window &parentWindow, const st
+     /* Set the pwd and/or the filename */
+     if (dir.size() > 0  && Glib::getenv("GTK_USE_PORTAL").empty()) {
+         std::string udir(dir);
++#ifdef _WIN32
++        std::replace(udir.begin(), udir.end(), '/', '\\'); // Hirch CNC: das Windows-Fenster braucht «\»
++#endif
+         std::string::size_type len = udir.length();
+         // leaving a trailing backslash on the directory name leads to the infamous
+         // double-directory bug on win32
+@@ -159,7 +169,7 @@ FileOpenDialogImplGtk::FileOpenDialogImplGtk(Gtk::Window &parentWindow, const st
+     // Add the file types menu.
+     createFilterMenu();
+ 
+-#ifndef LINUX_SNAP_PACKAGE
++#ifndef HIRCH_NATIVER_DATEIDIALOG
+     add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+     add_button(_("_Open"),   Gtk::RESPONSE_OK);
+     set_default_response(Gtk::RESPONSE_OK);
+@@ -167,12 +177,14 @@ FileOpenDialogImplGtk::FileOpenDialogImplGtk(Gtk::Window &parentWindow, const st
+     // Allow easy access to our examples folder.
+     using namespace Inkscape::IO::Resource;
+     auto examplesdir = get_path_string(SYSTEM, EXAMPLES);
++#ifndef _WIN32 // Hirch CNC: im Windows-Fenster stünde «Inkscape …» in der Seitenleiste
+     if (Glib::file_test(examplesdir, Glib::FILE_TEST_IS_DIR) && Glib::path_is_absolute(examplesdir)) {
+         add_shortcut_folder(examplesdir);
+         // add_shortcut_folder(Gio::File::create_for_path(examplesdir)); // Gtk4
+     }
++#endif
+ 
+-#if true // for v1.4
++#ifndef HIRCH_NATIVER_DATEIDIALOG // for v1.4 (Vorschau: GTK zeigt sonst unter Windows sein eigenes Fenster)
+     // Open executable file dialogs don't need the preview panel
+     if (_dialogType != EXE_TYPES) {
+         Glib::ustring preferenceBase = "/dialogs/file-open";
+@@ -201,7 +213,7 @@ FileOpenDialogImplGtk::FileOpenDialogImplGtk(Gtk::Window &parentWindow, const st
+ #endif
+ }
+ 
+-#if true // for v1.4
++#ifndef HIRCH_NATIVER_DATEIDIALOG // for v1.4 (Vorschau: GTK zeigt sonst unter Windows sein eigenes Fenster)
+ /**
+  * Callback for checking if the preview needs to be redrawn
+  */
+@@ -272,6 +284,9 @@ void FileOpenDialogImplGtk::createFilterMenu()
+                 allVectorFilter->add_pattern(upattern);
+             }
+         }
++#ifdef _WIN32
++        set_filter(allInkscapeFilter); // Hirch CNC: das Windows-Fenster nähme sonst «Alle Dateien»
++#endif
+     }
+     return;
+ }
+@@ -283,7 +298,7 @@ bool FileOpenDialogImplGtk::show()
+ {
+     set_modal(true); // Window
+     
+-#ifdef LINUX_SNAP_PACKAGE
++#ifdef HIRCH_NATIVER_DATEIDIALOG
+     int response = run(); // Dialog
+     const int response_ok = Gtk::RESPONSE_ACCEPT;
+ #else
+@@ -358,14 +373,16 @@ FileSaveDialogImplGtk::FileSaveDialogImplGtk(Gtk::Window &parentWindow, const st
+     // Allow easy access to the user's own templates folder.
+     using namespace Inkscape::IO::Resource;
+     char const *templates = Inkscape::IO::Resource::get_path(USER, TEMPLATES);
++#ifndef _WIN32 // Hirch CNC: im Windows-Fenster stünde «Inkscape vector › templates» in der Seitenleiste
+     if (Inkscape::IO::file_test(templates, G_FILE_TEST_EXISTS) &&
+         Inkscape::IO::file_test(templates, G_FILE_TEST_IS_DIR) && g_path_is_absolute(templates)) {
+         add_shortcut_folder(templates);
+     }
++#endif
+ 
+ 
+     // ===== Buttons =====
+-#ifndef LINUX_SNAP_PACKAGE
++#ifndef HIRCH_NATIVER_DATEIDIALOG
+     add_button(_("_Cancel"), Gtk::RESPONSE_CANCEL);
+     add_button(_("_Save"),   Gtk::RESPONSE_OK);
+     set_default_response(Gtk::RESPONSE_OK);
+@@ -387,6 +404,18 @@ FileSaveDialogImplGtk::FileSaveDialogImplGtk(Gtk::Window &parentWindow, const st
+         auto file = Gio::File::create_for_path(udir);
+         auto display_name = Glib::filename_to_utf8(file->get_basename());
+         Gio::FileType type = file->query_file_type();
++#ifdef _WIN32
++        // Hirch CNC: das Windows-Fenster nimmt bei set_file den Ordner darüber – Ordner und Name einzeln setzen
++        if (type != Gio::FILE_TYPE_DIRECTORY) {
++            std::string ordner = Glib::path_get_dirname(udir);
++            std::replace(ordner.begin(), ordner.end(), '/', '\\');
++            set_current_folder(ordner);
++            set_current_name(display_name);
++        } else {
++            std::replace(udir.begin(), udir.end(), '/', '\\');
++            set_current_folder(udir);
++        }
++#else
+         switch (type) {
+             case Gio::FILE_TYPE_UNKNOWN:
+                 set_file(file); // Set directory.
+@@ -403,24 +432,74 @@ FileSaveDialogImplGtk::FileSaveDialogImplGtk(Gtk::Window &parentWindow, const st
+             default:
+                 std::cerr << "FileDialogImplGtk: Unknown file type: " << (int)type << std::endl;
+         }
++#endif
+     }
+-#ifndef LINUX_SNAP_PACKAGE
++#ifndef HIRCH_NATIVER_DATEIDIALOG
+     show_all_children();
+ #endif
+ 
++#ifndef _WIN32 // Hirch CNC: beim Windows-Fenster würden diese Rückrufe den dort gewählten Typ mit set_filter
++               // wieder auf die Vorgabe setzen – Typ und Name kommen dort erst am Ende (show)
+     property_filter().signal_changed().connect([this]() { filefilterChanged(); });
+     signal_selection_changed().connect([this]() { filenameChanged(); });
++#endif
+ }
+ 
+ /**
+  * Show this dialog modally.  Return true if user hits [OK]
+  */
++#ifdef _WIN32
++// Hirch CNC: GTK 3.24 trägt den im Windows-Fenster gewählten Dateityp nur in GtkFileChooserNative::current_filter
++// ein (gtkfilechoosernativeprivate.h) und meldet ihn nicht über get_filter() – auslesen und gegen die eigenen
++// Filter prüfen; passt keiner, nullptr (dann zählt die Endung)
++static GtkFileFilter *hirch_gewaehlter_filter(Gtk::FileChooserNative &dlg)
++{
++    struct Native {
++        GtkNativeDialog parent_instance;
++        char *accept_label;
++        char *cancel_label;
++        int mode;
++        GSList *custom_files;
++        GFile *current_folder;
++        GFile *current_file;
++        char *current_name;
++        GtkFileFilter *current_filter;
++    };
++    auto gewaehlt = reinterpret_cast<Native *>(dlg.gobj())->current_filter;
++    for (auto const &f : dlg.list_filters()) {
++        if (f->gobj() == gewaehlt) return gewaehlt;
++    }
++    return nullptr;
++}
++#endif
++
+ bool FileSaveDialogImplGtk::show()
+ {
+     set_modal(true); // Window
+-    #ifdef LINUX_SNAP_PACKAGE
++    #ifdef HIRCH_NATIVER_DATEIDIALOG
++#ifdef _WIN32
++    // Hirch CNC: das Windows-Fenster meldet Typ und Namen erst am Ende – den Typ der Vorgabe (.hir) vorwählen
++    if (auto vorgabe = getExtension(); vorgabe && extensionFilterMap.count(vorgabe)) {
++        set_filter(extensionFilterMap[vorgabe]);
++    }
++#endif
+     int response = run();
+     const int response_ok = Gtk::RESPONSE_ACCEPT;
++#ifdef _WIN32
++    if (response == response_ok) {
++        Inkscape::Extension::Extension *gewaehlt = nullptr;
++        if (auto f = hirch_gewaehlter_filter(*this)) {
++            for (auto const &[filter, ext] : filterExtensionMap) {
++                if (filter->gobj() == f) gewaehlt = ext;
++            }
++        }
++        if (gewaehlt) {
++            FileDialog::setExtension(gewaehlt);
++        } else if (auto datei = get_file()) {
++            setExtension(Glib::filename_to_utf8(datei->get_basename())); // «Automatisch bestimmen»: nach Endung
++        }
++    }
++#endif
+     #else 
+ 
+     sp_transientize(GTK_WIDGET(gobj())); // Make transient
+@@ -520,6 +599,9 @@ void FileSaveDialogImplGtk::createFilterMenu()
+         // This extension is limited to save copy only.
+         if (omod->savecopy_only() && save_method != Inkscape::Extension::FILE_SAVE_METHOD_SAVE_COPY)
+             continue;
++        // Hirch CAM: nur Dateitypen aus der zentralen Liste (hirch-erlaubt.cpp)
++        if (!omod->is_raster() && !HirchErlaubt::speichern(omod->get_id()))
++            continue;
+ 
+         Glib::ustring extension = omod->get_extension();
+         addFilter(omod->get_filetypename(true), extension, omod);
+diff --git a/src/ui/dialog/filedialogimpl-gtkmm.h b/src/ui/dialog/filedialogimpl-gtkmm.h
+index 72ae481..50edce7 100644
+--- a/src/ui/dialog/filedialogimpl-gtkmm.h
++++ b/src/ui/dialog/filedialogimpl-gtkmm.h
+@@ -23,7 +23,13 @@
+ #include <giomm/file.h>
+ #include <glibmm/ustring.h>
+ 
+-#ifdef LINUX_SNAP_PACKAGE
++// Hirch CNC: unter Windows wie im Snap-Paket das Datei-Fenster des Systems (FileChooserNative,
++// unter Windows das Fenster von Windows 10/11) statt Inkscapes altem Win32-Fenster oder dem GTK-Fenster
++#if defined(LINUX_SNAP_PACKAGE) || defined(_WIN32)
++#define HIRCH_NATIVER_DATEIDIALOG 1
++#endif
++
++#ifdef HIRCH_NATIVER_DATEIDIALOG
+ // the snap package uses the native file dialog (which is then redirected via XDG desktop portal)
+ #include <gtkmm/filechoosernative.h>
+ #else
+@@ -60,7 +66,7 @@ namespace Dialog {
+  * reduces redundancies and bugs.
+  */
+ class FileDialogBaseGtk :
+-#ifdef LINUX_SNAP_PACKAGE
++#ifdef HIRCH_NATIVER_DATEIDIALOG
+  public Gtk::FileChooserNative
+ #else
+  public Gtk::FileChooserDialog
+@@ -81,7 +87,7 @@ public:
+     Glib::ustring extToPattern(const Glib::ustring &extension) const;
+ 
+ private:
+-#ifdef LINUX_SNAP_PACKAGE
++#ifdef HIRCH_NATIVER_DATEIDIALOG
+     const char * accept_label(Gtk::FileChooserAction dialogType);
+     const char * cancel_label();
+ #endif
+@@ -138,7 +144,7 @@ private:
+      */
+     void createFilterMenu();
+ 
+-#if true // for v1.4
++#ifndef HIRCH_NATIVER_DATEIDIALOG // for v1.4 (Vorschau: GTK zeigt sonst unter Windows sein eigenes Fenster)
+     void updatePreviewCallback();
+     SVGPreview _preview;
+     Gtk::CheckButton previewCheckbox;
+diff --git a/src/ui/dialog/filedialogimpl-win32.cpp b/src/ui/dialog/filedialogimpl-win32.cpp
+index 4f8829e..be329cb 100644
+--- a/src/ui/dialog/filedialogimpl-win32.cpp
++++ b/src/ui/dialog/filedialogimpl-win32.cpp
+@@ -15,6 +15,7 @@
+ #ifdef _WIN32
+ 
+ #include "filedialogimpl-win32.h"
++#include "ui/dialog/hirch-erlaubt.h"
+ 
+ #include <list>
+ #include <thread>
+@@ -1632,6 +1633,9 @@ void FileSaveDialogImplWin32::createFilterMenu()
+         // This extension is limited to save copy only.
+         if (omod->savecopy_only() && save_method != Inkscape::Extension::FILE_SAVE_METHOD_SAVE_COPY)
+             continue;
++        // Hirch CAM: nur Dateitypen aus der zentralen Liste (hirch-erlaubt.cpp)
++        if (!omod->is_raster() && !HirchErlaubt::speichern(omod->get_id()))
++            continue;
+ 
+         filter_count++;
+ 
+diff --git a/src/xml/repr-util.cpp b/src/xml/repr-util.cpp
+index d36045b..47aff4c 100644
+--- a/src/xml/repr-util.cpp
++++ b/src/xml/repr-util.cpp
+@@ -99,11 +99,12 @@ static void sp_xml_ns_register_defaults()
+ 
+     defaults[6].uri = g_quark_from_static_string(SP_DC_NS_URI);
+     defaults[6].prefix = g_quark_from_static_string("dc");
+-    defaults[6].next = &defaults[8];
++    defaults[6].next = &defaults[7];
+ 
+-    //defaults[7].uri = g_quark_from_static_string("https://inkscape.org/namespaces/deprecated/osb");
+-    //defaults[7].prefix = g_quark_from_static_string("osb");
+-    //defaults[7].next = &defaults[8];
++    // Hirch CNC: Einstellungen und Materialdicke (hirch:einstellungen, hirch:materialdicke)
++    defaults[7].uri = g_quark_from_static_string("https://hirch.net/cnc");
++    defaults[7].prefix = g_quark_from_static_string("hirch");
++    defaults[7].next = &defaults[8];
+ 
+     // Inkscape versions prior to 0.44 would write this namespace
+     // URI instead of the correct sodipodi namespace; by adding this

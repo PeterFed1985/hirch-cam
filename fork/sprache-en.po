@@ -1,0 +1,108 @@
+# Hirch CAM: englische Oberfläche – Texte aus Inkscape, die den Programmnamen tragen.
+# Erzeugt aus der Liste der Basis (27.10.2026); paket.sh übersetzt sie nach share/locale/en.
+msgid ""
+msgstr ""
+"Project-Id-Version: hirch-cam\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+
+msgid "Quit Inkscape, check for data loss"
+msgstr "Quit Hirch CAM, check for data loss"
+
+msgid "Immediately quit Inkscape, no check for data loss"
+msgstr "Immediately quit Hirch CAM, no check for data loss"
+
+msgid "Edit global Inkscape preferences"
+msgstr "Edit global Hirch CAM preferences"
+
+msgid "Force Inkscape to crash, useful for testing."
+msgstr "Force Hirch CAM to crash, useful for testing."
+
+msgid "Autosave failed! Could not find inkscape extension to save document."
+msgstr "Autosave failed! Could not find extension to save document."
+
+msgid "Inkscape has received additional data from the script executed.  The script did not return an error, but this may indicate the results will not be as expected."
+msgstr "Hirch CAM has received additional data from the script executed.  The script did not return an error, but this may indicate the results will not be as expected."
+
+msgid "No Inkscape extension found to save document (%s). This may have been caused by an unknown or missing filename extension."
+msgstr "No Hirch CAM extension found to save document (%s). This may have been caused by an unknown or missing filename extension."
+
+msgid "Inkscape will run with default settings, and new settings will not be saved. "
+msgstr "Hirch CAM will run with default settings, and new settings will not be saved. "
+
+msgid "The file %s is not a valid Inkscape preferences file."
+msgstr "The file %s is not a valid Hirch CAM preferences file."
+
+msgid "When active, Inkscape will try to detect whether the deleted node is a sharp corner. If it is a sharp corner, the node will be deleted, and the adjacent handles will stay unchanged. When it is not a sharp corner, the adjacent handles will be adjusted to preserve the shape. When inactive, Inkscape will try to preserve the shape in all cases; hold Ctrl while deleting a node to delete it without shape preservation."
+msgstr "When active, Hirch CAM will try to detect whether the deleted node is a sharp corner. If it is a sharp corner, the node will be deleted, and the adjacent handles will stay unchanged. When it is not a sharp corner, the adjacent handles will be adjusted to preserve the shape. When inactive, Hirch CAM will try to preserve the shape in all cases; hold Ctrl while deleting a node to delete it without shape preservation."
+
+msgid "Use Inkscape's fonts directory"
+msgstr "Use Hirch CAM's fonts directory"
+
+msgid "Load additional fonts from \"fonts\" directory located in Inkscape's global \"share\" directory"
+msgstr "Load additional fonts from \"fonts\" directory located in Hirch CAM's global \"share\" directory"
+
+msgid "Load additional fonts from \"fonts\" directory located in Inkscape's user configuration directory"
+msgstr "Load additional fonts from \"fonts\" directory located in Hirch CAM's user configuration directory"
+
+msgid "Whether the splash screen will be shown when Inkscape starts."
+msgstr "Whether the splash screen will be shown when Hirch CAM starts."
+
+msgid "Whether the Welcome dialog will be shown when Inkscape starts."
+msgstr "Whether the Welcome dialog will be shown when Hirch CAM starts."
+
+msgid "Check attributes and style properties on reading in SVG files (including those internal to Inkscape which will slow down startup)"
+msgstr "Check attributes and style properties on reading in SVG files (including those internal to Hirch CAM which will slow down startup)"
+
+msgid "Check attributes and style properties while editing SVG files (may slow down Inkscape, mostly useful for debugging)"
+msgstr "Check attributes and style properties while editing SVG files (may slow down Hirch CAM, mostly useful for debugging)"
+
+msgid "When multiple snap solutions are found, then Inkscape can either prefer the closest transformation (when set to 0), or prefer the node that was initially the closest to the pointer (when set to 1)"
+msgstr "When multiple snap solutions are found, then Hirch CAM can either prefer the closest transformation (when set to 0), or prefer the node that was initially the closest to the pointer (when set to 1)"
+
+msgid "By default, image links are stored as relative paths whenever possible. If this option is enabled, Inkscape will additionally add an absolute path ('sodipodi:absref' attribute) to the image. This is used as a fall-back for locating the linked image, for example if the SVG document has been moved on disk. Note that this will expose your directory structure in the file's source code, which can include personal information like your username."
+msgstr "By default, image links are stored as relative paths whenever possible. If this option is enabled, Hirch CAM will additionally add an absolute path ('sodipodi:absref' attribute) to the image. This is used as a fall-back for locating the linked image, for example if the SVG document has been moved on disk. Note that this will expose your directory structure in the file's source code, which can include personal information like your username."
+
+msgid "A folder structured like a user's Inkscape preferences directory. This makes it possible to share a set of resources, such as extensions, fonts, icon sets, keyboard shortcuts, patterns/hatches, palettes, symbols, templates, themes and user interface definition files, between multiple users who have access to that folder (on the same computer or in the network). Requires a restart of Inkscape to work when changed."
+msgstr "A folder structured like a user's Hirch CAM preferences directory. This makes it possible to share a set of resources, such as extensions, fonts, icon sets, keyboard shortcuts, patterns/hatches, palettes, symbols, templates, themes and user interface definition files, between multiple users who have access to that folder (on the same computer or in the network). Requires a restart of Hirch CAM to work when changed."
+
+msgid "Inkscape data:"
+msgstr "Hirch CAM data:"
+
+msgid "Location of Inkscape data"
+msgstr "Location of Hirch CAM data"
+
+msgid "Inkscape extensions:"
+msgstr "Hirch CAM extensions:"
+
+msgid "Location of the Inkscape extensions"
+msgstr "Location of the Hirch CAM extensions"
+
+msgid "Inkscape shortcuts (*.xml)"
+msgstr "Hirch CAM shortcuts (*.xml)"
+
+msgid "Inkscape has crashed and will now close."
+msgstr "Hirch CAM has crashed and will now close."
+
+msgid "<b>Welcome to Inkscape!</b> Use shape or freehand tools to create objects; use selector (arrow) to move or transform them."
+msgstr "<b>Welcome to Hirch CAM!</b> Use shape or freehand tools to create objects; use selector (arrow) to move or transform them."
+
+msgid "Reset paint bucket parameters to defaults (use Inkscape Preferences > Tools to change defaults)"
+msgstr "Reset paint bucket parameters to defaults (use Advanced Preferences > Tools to change defaults)"
+
+msgid "Reset shape parameters to defaults (use Inkscape Preferences > Tools to change defaults)"
+msgstr "Reset shape parameters to defaults (use Advanced Preferences > Tools to change defaults)"
+
+msgid "Inkscape _preferences"
+msgstr "Advanced _preferences"
+
+msgid "_Save as Inkscape SVG"
+msgstr "_Save as Hirch CAM drawing"
+
+msgid "All Inkscape Files"
+msgstr "All Hirch CAM Files"
+
+msgid "<span weight=\"bold\" size=\"larger\">The file \"%s\" was saved with a format that may cause data loss!</span>\n\nDo you want to save this file as Inkscape SVG?"
+msgstr "<span weight=\"bold\" size=\"larger\">The file \"%s\" was saved with a format that may cause data loss!</span>\n\nDo you want to save this file as a Hirch CAM drawing (.hir)?"

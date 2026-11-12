@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <name>Fräsen</name>
+  <id>net.hirch.cnc.fraesen</id>
+
+  <param name="reiter" type="notebook">
+    <page name="werkzeuge" gui-text="Werkzeuge">
+      <label>Bis zu drei Werkzeuge. Jede Fräsart bekommt eines davon (Reiter «Gravieren» und «Ausfräsen»). Pro Werkzeug entsteht eine eigene .tap-Datei.</label>
+      <label appearance="header">Werkzeug A</label>
+      <param name="wA_typ" type="optiongroup" appearance="combo" gui-text="Art:">
+        <option value="v">V-Fräser</option>
+        <option value="schaft">Schaftfräser</option>
+      </param>
+      <param name="wA_durchmesser" type="float" min="0.10" max="50" precision="2" gui-text="Durchmesser (mm):">12.00</param>
+      <param name="wA_winkel" type="int" min="10" max="150" gui-text="Winkel, nur V-Fräser (°):">60</param>
+      <label appearance="header">Werkzeug B</label>
+      <param name="wB_typ" type="optiongroup" appearance="combo" gui-text="Art:">
+        <option value="schaft">Schaftfräser</option>
+        <option value="v">V-Fräser</option>
+      </param>
+      <param name="wB_durchmesser" type="float" min="0.10" max="50" precision="2" gui-text="Durchmesser (mm):">3.00</param>
+      <param name="wB_winkel" type="int" min="10" max="150" gui-text="Winkel, nur V-Fräser (°):">60</param>
+      <label appearance="header">Werkzeug C</label>
+      <param name="wC_typ" type="optiongroup" appearance="combo" gui-text="Art:">
+        <option value="schaft">Schaftfräser</option>
+        <option value="v">V-Fräser</option>
+      </param>
+      <param name="wC_durchmesser" type="float" min="0.10" max="50" precision="2" gui-text="Durchmesser (mm):">6.00</param>
+      <param name="wC_winkel" type="int" min="10" max="150" gui-text="Winkel, nur V-Fräser (°):">60</param>
+    </page>
+    <page name="schnittwerte" gui-text="Schnittwerte">
+      <label appearance="header">Werkzeug A</label>
+      <param name="wA_drehzahl" type="int" min="1000" max="40000" gui-text="Drehzahl (U/min):">18000</param>
+      <param name="wA_vorschub" type="int" min="1" max="20000" gui-text="Vorschub (mm/min):">1200</param>
+      <param name="wA_eintauchen" type="int" min="1" max="10000" gui-text="Eintauchvorschub (mm/min):">300</param>
+      <param name="wA_nummer" type="int" min="1" max="99" gui-text="Werkzeugnummer (T):">1</param>
+      <label appearance="header">Werkzeug B</label>
+      <param name="wB_drehzahl" type="int" min="1000" max="40000" gui-text="Drehzahl (U/min):">18000</param>
+      <param name="wB_vorschub" type="int" min="1" max="20000" gui-text="Vorschub (mm/min):">1000</param>
+      <param name="wB_eintauchen" type="int" min="1" max="10000" gui-text="Eintauchvorschub (mm/min):">300</param>
+      <param name="wB_nummer" type="int" min="1" max="99" gui-text="Werkzeugnummer (T):">1</param>
+      <label appearance="header">Werkzeug C</label>
+      <param name="wC_drehzahl" type="int" min="1000" max="40000" gui-text="Drehzahl (U/min):">16000</param>
+      <param name="wC_vorschub" type="int" min="1" max="20000" gui-text="Vorschub (mm/min):">1500</param>
+      <param name="wC_eintauchen" type="int" min="1" max="10000" gui-text="Eintauchvorschub (mm/min):">400</param>
+      <param name="wC_nummer" type="int" min="1" max="99" gui-text="Werkzeugnummer (T):">1</param>
+    </page>
+    <page name="gravieren" gui-text="Gravieren">
+      <label appearance="header">V-Carve (Rot) – Flächen mit dem V-Fräser</label>
+      <param name="vcarve_werkzeug" type="optiongroup" appearance="combo" gui-text="Werkzeug:">
+        <option value="A">Werkzeug A</option>
+        <option value="B">Werkzeug B</option>
+        <option value="C">Werkzeug C</option>
+      </param>
+      <param name="vcarve_max_tiefe" type="float" min="0.10" max="50" precision="2" gui-text="Maximale Tiefe (mm):">5.00</param>
+      <param name="vcarve_flach_werkzeug" type="optiongroup" appearance="combo" gui-text="Flachbereich mit:">
+        <option value="B">Werkzeug B</option>
+        <option value="">keiner</option>
+        <option value="A">Werkzeug A</option>
+        <option value="C">Werkzeug C</option>
+      </param>
+      <label>Breite Stellen bekommen mit einem Schaftfräser einen flachen Boden. V-Carve braucht FreeCAD.</label>
+      <label appearance="header">Gravur (Orange) – auf der Linie</label>
+      <param name="gravur_werkzeug" type="optiongroup" appearance="combo" gui-text="Werkzeug:">
+        <option value="A">Werkzeug A</option>
+        <option value="B">Werkzeug B</option>
+        <option value="C">Werkzeug C</option>
+      </param>
+      <param name="gravur_tiefe" type="float" min="0.01" max="50" precision="2" gui-text="Tiefe (mm):">0.50</param>
+      <param name="gravur_zustellung" type="float" min="0.01" max="50" precision="2" gui-text="Zustellung (mm):">0.50</param>
+    </page>
+    <page name="ausfraesen" gui-text="Ausfräsen">
+      <label appearance="header">Tasche (Grün) – Fläche ausräumen</label>
+      <param name="tasche_werkzeug" type="optiongroup" appearance="combo" gui-text="Werkzeug:">
+        <option value="B">Werkzeug B</option>
+        <option value="A">Werkzeug A</option>
+        <option value="C">Werkzeug C</option>
+      </param>
+      <param name="tasche_tiefe" type="float" min="0.01" max="100" precision="2" gui-text="Tiefe (mm):">3.00</param>
+      <param name="tasche_zustellung" type="float" min="0.01" max="100" precision="2" gui-text="Zustellung (mm):">1.50</param>
+      <param name="tasche_bahnabstand" type="int" min="5" max="95" gui-text="Bahnabstand (% vom Durchmesser):">40</param>
+      <label appearance="header">Kontur (Blau) – ausschneiden</label>
+      <param name="kontur_werkzeug" type="optiongroup" appearance="combo" gui-text="Werkzeug:">
+        <option value="C">Werkzeug C</option>
+        <option value="A">Werkzeug A</option>
+        <option value="B">Werkzeug B</option>
+      </param>
+      <param name="kontur_tiefe" type="float" min="0.01" max="100" precision="2" gui-text="Tiefe (mm):">6.00</param>
+      <param name="kontur_zustellung" type="float" min="0.01" max="100" precision="2" gui-text="Zustellung (mm):">2.00</param>
+      <param name="kontur_seite" type="optiongroup" appearance="combo" gui-text="Seite:">
+        <option value="auto">Automatisch (Teile ausschneiden)</option>
+        <option value="aussen">Aussen</option>
+        <option value="innen">Innen</option>
+        <option value="linie">Auf der Linie</option>
+      </param>
+      <param name="kontur_richtung" type="optiongroup" appearance="combo" gui-text="Richtung:">
+        <option value="gleichlauf">Gleichlauf</option>
+        <option value="gegenlauf">Gegenlauf</option>
+      </param>
+      <param name="stege_anzahl" type="int" min="0" max="20" gui-text="Haltestege pro Form:">4</param>
+      <param name="stege_breite" type="float" min="1" max="50" precision="2" gui-text="Stegbreite (mm):">6.00</param>
+      <param name="stege_hoehe" type="float" min="0.2" max="20" precision="2" gui-text="Steghöhe (mm):">1.50</param>
+      <label>Haltestege nur, wenn die Tiefe mindestens der Materialdicke entspricht.</label>
+      <label appearance="header">Bohren (Violett) – in der Mitte der Form</label>
+      <param name="bohren_werkzeug" type="optiongroup" appearance="combo" gui-text="Werkzeug:">
+        <option value="B">Werkzeug B</option>
+        <option value="A">Werkzeug A</option>
+        <option value="C">Werkzeug C</option>
+      </param>
+      <param name="bohren_tiefe" type="float" min="0.01" max="100" precision="2" gui-text="Tiefe (mm):">5.00</param>
+      <param name="bohren_zustellung" type="float" min="0.01" max="100" precision="2" gui-text="Zustellung (mm):">2.50</param>
+    </page>
+    <page name="hoehen" gui-text="Höhen">
+      <param name="freifahrhoehe" type="float" min="0.5" max="100" precision="2" gui-text="Freifahrhöhe (mm):">3.00</param>
+      <param name="startabstand" type="float" min="0.1" max="10" precision="2" gui-text="Startabstand über Material (mm):">0.50</param>
+      <param name="sicherheitshoehe" type="float" min="1" max="200" precision="2" gui-text="Sicherheitshöhe Anfang/Ende (mm):">20.00</param>
+      <label>Nullpunkt: linke untere Ecke der Seite. Z0: Oberfläche des Materials.
+Grösse und Dicke des Materials: Erweiterungen › Hirch CNC › Material einrichten</label>
+    </page>
+    <page name="ausgabe" gui-text="Ausgabe">
+      <param name="postprozessor" type="optiongroup" appearance="combo" gui-text="Steuerung:">
+        <option value="vcarve_mm">G-Code (mm), .tap – eine Datei pro Werkzeug (alt)</option>
+      </param>
+      <param name="datei" type="path" mode="file_new" gui-text="Datei:"></param>
+      <label>Leer lassen: Die Datei wird neben der Zeichnung gespeichert (gleicher Name, Endung je nach Steuerung).</label>
+      <param name="toleranz" type="float" min="0.001" max="0.5" precision="3" gui-text="Genauigkeit Kurven (mm):">0.01</param>
+      <param name="vorschau" type="bool" gui-text="3D-Vorschau im Browser öffnen">true</param>
+    </page>
+  </param>
+
+  <effect needs-live-preview="false">
+    <object-type>all</object-type>
+    <effects-menu>
+      <submenu name="Hirch CNC"/>
+    </effects-menu>
+  </effect>
+  <script>
+    <command location="inx" interpreter="python">hirch_fraesen.py</command>
+  </script>
+</inkscape-extension>

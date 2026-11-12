@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+examples/*.tap
+hirch_cam/hirch_cam*.so
+hirch_cam/hirch_relief*.so
+hirch_cam/hirch_cam*.pyd
+hirch_cam/hirch_relief*.pyd
+hirch_cam/schriften/ttf/

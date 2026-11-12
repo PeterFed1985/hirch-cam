@@ -1,0 +1,32 @@
+{
+  "name": "Weihong NcStudio (mm, .nc)",
+  "beschreibung": "Weihong NcStudio (PC-Steuerung vieler chinesischer Holzfräsen). Eine Datei je Werkzeug: Fräser wechseln, Z antasten, nächste Datei laden. Bögen G2/G3, Bohrungen als Bewegungen, keine Drehzahl im Programm nötig (S steht trotzdem drin). Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": false,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": false,
+  "boegen": true,
+  "kommentar": "",
+  "zeilennummern": 0,
+  "kopf": [
+    "G21G90G17"
+  ],
+  "werkzeug": [
+    "G0Z{sicher}",
+    "S{s}M03"
+  ],
+  "wechsel": [
+    "M05",
+    "G0Z{sicher}"
+  ],
+  "ende": [
+    "G0Z{sicher}",
+    "G0X{hx}Y{hy}",
+    "M05",
+    "M30"
+  ]
+}

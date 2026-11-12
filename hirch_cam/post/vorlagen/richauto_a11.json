@@ -1,0 +1,36 @@
+{
+  "name": "RichAuto A11 (.tap)",
+  "beschreibung": "Handregler RichAuto DSP A11. Eine Datei je Werkzeug (SCHILD_1.TAP, SCHILD_2.TAP …): Fräser wechseln, Z antasten, nächste Datei starten. Der Regler zeigt nur 8 Zeichen und keine Kleinbuchstaben – deshalb kurze Namen in GROSSBUCHSTABEN. Alles in einer Datei mit Halt bei T…M6 geht auch (Maschine → Werkzeugwechsel; am Regler «T: Read T»), dann fährt der Regler aber zu seinem eigenen Wechselpunkt am Maschinen-Nullpunkt. Keine Drehzahl (die Spindel wird nur ein- und ausgeschaltet).",
+  "an_maschine_geprueft": true,
+  "endung": ".tap",
+  "kurzname": 8,
+  "grossbuchstaben": true,
+  "werkzeugwechsel": false,
+  "wechselposition": true,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": false,
+  "boegen": true,
+  "kommentar": "",
+  "zeilennummern": 0,
+  "kopf": [
+    "G17"
+  ],
+  "werkzeug": [
+    "G0Z{sicher}",
+    "G0X{hx}Y{hy}M3"
+  ],
+  "wechsel": [
+    "G0Z{sicher}",
+    "M5",
+    "G0X{wx}Y{wy}",
+    "T{t}M6"
+  ],
+  "ende": [
+    "G0Z{sicher}",
+    "G0X{hx}Y{hy}",
+    "M5",
+    "M30"
+  ]
+}

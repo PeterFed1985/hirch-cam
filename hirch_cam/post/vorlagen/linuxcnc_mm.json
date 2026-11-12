@@ -1,0 +1,50 @@
+{
+  "name": "LinuxCNC / Mach3 (mm, .ngc)",
+  "beschreibung": "LinuxCNC, Mach3, Mach4 und ähnliche Steuerungen nach RS274/NGC. Bohrungen als Bohrzyklen (G83 mit Entspanen, G81 in einem Zug), Rundungen auf Wunsch als G2/G3. Werkzeugwechsel mit T…M6 – LinuxCNC hält dafür an (Handwechsel) und meldet das Werkzeug. Danach Z neu antasten oder Werkzeuglängen in der Werkzeugtabelle pflegen.",
+  "an_maschine_geprueft": false,
+  "endung": ".ngc",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "bohrzyklus": {
+    "entspanen": [
+      "G98 G83 X{x} Y{y} Z{z} R{r} Q{q} F{f}"
+    ],
+    "einfach": [
+      "G98 G81 X{x} Y{y} Z{z} R{r} F{f}"
+    ],
+    "verweilen": [
+      "G98 G82 X{x} Y{y} Z{z} R{r} P{p} F{f}"
+    ],
+    "ende": [
+      "G80"
+    ]
+  },
+  "kopf": [
+    "%",
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G94 G17 G40 G80"
+  ],
+  "werkzeug": [
+    "T{t} M6 ({werkzeug})",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{sicher}"
+  ],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30",
+    "%"
+  ]
+}

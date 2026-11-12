@@ -1,0 +1,479 @@
+diff --git a/src/actions/actions-object-align.cpp b/src/actions/actions-object-align.cpp
+index eca5fd3..1601496 100644
+--- a/src/actions/actions-object-align.cpp
++++ b/src/actions/actions-object-align.cpp
+@@ -112,6 +112,12 @@ object_align(const Glib::VariantBase& value, InkscapeApplication *app)
+         group = prefs->getBool("/dialogs/align/sel-as-groups", false);
+         tokens.push_back(prefs->getString("/dialogs/align/objects-align-to", "selection"));
+     }
++    // Hirch CNC: mehrere Objekte am zuletzt ausgewählten (es bleibt stehen), ein einzelnes
++    // am Material (Seite)
++    if (std::find(tokens.begin(), tokens.end(), "hirch") != tokens.end()) {
++        auto sel = app->get_active_selection();
++        tokens.push_back(sel && sel->size() > 1 ? "last" : "page");
++    }
+  
+     // clang-format off
+     for (auto const &token : tokens) {
+diff --git a/src/display/control/canvas-item-bpath.cpp b/src/display/control/canvas-item-bpath.cpp
+index 5f557f3..6f1f376 100644
+--- a/src/display/control/canvas-item-bpath.cpp
++++ b/src/display/control/canvas-item-bpath.cpp
+@@ -16,6 +16,8 @@
+ 
+ #include "canvas-item-bpath.h"
+ 
++#include <algorithm>
++
+ #include "color.h" // SP_RGBA_x_F
+ #include "display/curve.h"
+ #include "display/cairo-utils.h"
+@@ -89,12 +91,21 @@ void CanvasItemBpath::set_dashes(std::vector<double> &&dashes)
+ /**
+  * Set the stroke width
+  */
++void CanvasItemBpath::set_rille(double breite)
++{
++    defer([=, this] {
++        if (_rille == breite) return;
++        _rille = breite;
++        request_update();
++    });
++}
++
+ void CanvasItemBpath::set_stroke_width(double width)
+ {
+     defer([=, this] {
+         if (_stroke_width == width) return;
+         _stroke_width = width;
+-        request_redraw();
++        request_update();          // Hirch CNC: die Grenzen hängen jetzt von der Strichbreite ab
+     });
+ }
+ 
+@@ -147,7 +158,10 @@ void CanvasItemBpath::_update(bool)
+         return;
+     }
+ 
+-    _bounds = expandedBy(bounds_exact_transformed(_path, affine()), 2);
++    // Hirch CNC: breite Striche (Schein der Auswahl, 10 px) reichen über 2 px hinaus – sonst bleibt beim
++    // Entfernen ein Rand stehen (Peter, 22.10.)
++    double breite = _rille > 0 ? _rille * affine().descrim() : _stroke_width;
++    _bounds = expandedBy(bounds_exact_transformed(_path, affine()), std::max(2.0, breite / 2 + 1));
+ 
+     // Queue redraw of new area
+     request_redraw();
+@@ -173,7 +187,7 @@ void CanvasItemBpath::_render(Inkscape::CanvasItemBuffer &buf) const
+     buf.cr->begin_new_path();
+ 
+     feed_pathvector_to_cairo(buf.cr->cobj(), _path, affine(), buf.rect,
+-                             /* optimize_stroke */ !do_fill, 1);
++                             /* optimize_stroke */ !do_fill, _rille > 0 ? _rille * affine().descrim() : 1);
+ 
+     // Do fill
+     if (do_fill) {
+@@ -199,7 +213,15 @@ void CanvasItemBpath::_render(Inkscape::CanvasItemBuffer &buf) const
+ 
+         buf.cr->set_source_rgba(SP_RGBA32_R_F(_stroke), SP_RGBA32_G_F(_stroke),
+                                 SP_RGBA32_B_F(_stroke), SP_RGBA32_A_F(_stroke));
+-        buf.cr->set_line_width(_stroke_width);
++        if (_rille > 0) {
++            buf.cr->set_line_width(_rille * affine().descrim());
++            buf.cr->set_line_cap(Cairo::LINE_CAP_ROUND);
++            buf.cr->set_line_join(Cairo::LINE_JOIN_ROUND);
++        } else {
++            buf.cr->set_line_width(_stroke_width);
++            // Hirch CNC: breite Striche (Schein der Auswahl) mit runden Ecken – sonst Zacken an spitzen Ecken
++            if (_stroke_width > 2) buf.cr->set_line_join(Cairo::LINE_JOIN_ROUND);
++        }
+         buf.cr->stroke();
+ 
+     } else {
+diff --git a/src/display/control/canvas-item-bpath.h b/src/display/control/canvas-item-bpath.h
+index 3b87579..4973b7f 100644
+--- a/src/display/control/canvas-item-bpath.h
++++ b/src/display/control/canvas-item-bpath.h
+@@ -47,6 +47,9 @@ public:
+     void set_fill(uint32_t rgba, SPWindRule fill_rule);
+     void set_dashes(std::vector<double> &&dashes);
+     void set_stroke_width(double width);
++    /// Hirch CNC: Strichbreite in Einheiten der Zeichnung (wächst mit dem Zoom), runde Enden und Ecken –
++    /// so zeigt eine Mittellinie die Rille einer Gravur, ohne ihren Umriss zu rechnen
++    void set_rille(double breite);
+ 
+ protected:
+     ~CanvasItemBpath() override = default;
+@@ -62,6 +65,7 @@ protected:
+     std::vector<double> _dashes;
+     bool _phantom_line = false;
+     double _stroke_width = 1.0;
++    double _rille = 0.0;               // Hirch CNC: > 0 = Breite in Einheiten der Zeichnung
+ };
+ 
+ } // namespace Inkscape
+diff --git a/src/display/drawing-shape.cpp b/src/display/drawing-shape.cpp
+index 781bfad..aeff54d 100644
+--- a/src/display/drawing-shape.cpp
++++ b/src/display/drawing-shape.cpp
+@@ -25,11 +25,36 @@
+ #include "control/canvas-item-drawing.h"
+ 
+ #include "helper/geom.h"
++#include "object/sp-item.h"
+ 
+ #include "ui/widget/canvas.h" // Canvas area
+ 
+ namespace Inkscape {
+ 
++
++/// Hirch CNC: Linien auf der Arbeitsfläche höchstens so breit (Bildschirmpunkte, 0 = aus).
++double hirch_linien_max = 1.0;
++
++/// Gravurtext zeigt bewusst die Rillenbreite: nicht verfeinern.
++static bool hirch_echte_breite(SPItem const *item)
++{
++    int n = 0;
++    for (auto o = static_cast<SPObject const *>(item); o && n < 5; o = o->parent, ++n) {
++        if (auto r = o->getRepr(); r && r->attribute("hirch:gravurtext")) return true;
++    }
++    return false;
++}
++
++void hirch_verfeinern(DrawingContext &dc, Drawing &drawing, SPItem const *item, double breite)
++{
++    if (hirch_linien_max <= 0 || !drawing.getCanvasItemDrawing()) return;   // nur Arbeitsfläche, kein Export
++    double dx = 1.0, dy = 0.0;
++    dc.device_to_user_distance(dx, dy);
++    double grenze = std::hypot(dx, dy) * hirch_linien_max;
++    if (breite > grenze && !hirch_echte_breite(item)) dc.setLineWidth(grenze);
++}
++
++
+ DrawingShape::DrawingShape(Drawing &drawing)
+     : DrawingItem(drawing)
+     , style_vector_effect_stroke(false)
+@@ -202,6 +227,7 @@ void DrawingShape::_renderStroke(DrawingContext &dc, RenderContext &rc, Geom::In
+                 dc.setHairline();
+             }
+         }
++        if (!style_stroke_extensions_hairline) hirch_verfeinern(dc, _drawing, _item, _nrstyle.data.stroke_width);
+ 
+         dc.strokePreserve();
+         dc.newPath(); // clear path
+@@ -286,6 +312,7 @@ unsigned DrawingShape::_renderItem(DrawingContext &dc, RenderContext &rc, Geom::
+                             dc.setLineWidth(half_pixel_size);
+                         }
+                     }
++                    if (!_nrstyle.data.hairline) hirch_verfeinern(dc, _drawing, _item, _nrstyle.data.stroke_width);
+ 
+                     dc.strokePreserve();
+                 }
+diff --git a/src/display/drawing-text.cpp b/src/display/drawing-text.cpp
+index b3f2718..e23f2da 100644
+--- a/src/display/drawing-text.cpp
++++ b/src/display/drawing-text.cpp
+@@ -29,6 +29,10 @@
+ 
+ namespace Inkscape {
+ 
++/// Hirch CNC (drawing-shape.cpp): Linienbreite auf der Arbeitsfläche begrenzen
++void hirch_verfeinern(DrawingContext &dc, Drawing &drawing, SPItem const *item, double breite);
++
++
+ DrawingGlyphs::DrawingGlyphs(Drawing &drawing)
+     : DrawingItem(drawing)
+     , _glyph(0)
+@@ -659,6 +663,8 @@ unsigned DrawingText::_renderItem(DrawingContext &dc, RenderContext &rc, Geom::I
+                        dc.setHairline();
+                     }
+                 }
++                // Hirch CNC: Text wie alle Linien höchstens so breit wie eingestellt
++                if (!style_stroke_extensions_hairline) hirch_verfeinern(dc, _drawing, _item, _nrstyle.data.stroke_width);
+ 
+                 dc.strokePreserve();
+             }
+diff --git a/src/document-undo.cpp b/src/document-undo.cpp
+index 44c636d..e6209b1 100644
+--- a/src/document-undo.cpp
++++ b/src/document-undo.cpp
+@@ -199,6 +199,25 @@ void Inkscape::DocumentUndo::maybeDone(SPDocument *doc,
+   doc->commit_signal.emit();
+ }
+ 
++void Inkscape::DocumentUndo::anhaengen(SPDocument *doc)
++{
++    if (!doc || !doc->sensitive) return;
++    doc->collectOrphans();
++    doc->ensureUpToDate();
++    Inkscape::XML::Event *log = sp_repr_coalesce_log(doc->partial, sp_repr_commit_undoable(doc->rdoc));
++    doc->partial = nullptr;
++    if (log) {
++        if (!doc->undo.empty() && doc->redo.empty()) {
++            doc->undo.back()->event = sp_repr_coalesce_log(doc->undo.back()->event, log);
++        } else {
++            sp_repr_free_log(log);
++        }
++        doc->virgin = FALSE;
++        doc->setModifiedSinceSave();
++    }
++    sp_repr_begin_transaction(doc->rdoc);
++}
++
+ void Inkscape::DocumentUndo::cancel(SPDocument *doc)
+ {
+     g_assert (doc != nullptr);
+diff --git a/src/document-undo.h b/src/document-undo.h
+index 937fa8b..8382c35 100644
+--- a/src/document-undo.h
++++ b/src/document-undo.h
+@@ -50,6 +50,11 @@ private:
+ public:
+     static void resetKey(SPDocument *document);
+ 
++    /// Hirch CNC: Änderungen seit dem letzten Schritt dem letzten Undo-Schritt anhängen
++    /// (abgeleitete Objekte wie die Partner der Passlöcher folgen so beim Rückgängigmachen mit).
++    /// Gibt es keinen passenden Schritt (leer oder gerade rückgängig gemacht), wird nichts aufgezeichnet.
++    static void anhaengen(SPDocument *document);
++
+     static void cancel(SPDocument *document);
+ 
+     static gboolean undo(SPDocument *document);
+diff --git a/src/document.h b/src/document.h
+index 7e69802..26b0006 100644
+--- a/src/document.h
++++ b/src/document.h
+@@ -267,6 +267,7 @@ public:
+     }
+     /// True if the desktop Y-axis points down, false if it points up.
+     bool is_yaxisdown() const { return yaxisdir() > 0; }
++
+     /// "1" if the desktop Y-axis points down, "-1" if it points up.
+     double yaxisdir() const { return _doc2dt[3]; }
+ 
+@@ -514,6 +515,11 @@ public:
+  *
+  */
+ 
++/// Hirch CNC: Werkstück-Nullpunkt der Seite, auf der doc_px liegt (Dokument-px), aus der Analyse des
++/// Fräsen-Panels. Lineale, Mausposition, Werkzeugleisten, Hilfslinien, Raster, Messen und Transformieren
++/// zählen ab hier (SPPage::getDesktopAffine, PageManager::getSelectedPageAffine). false: keine Fräsdaten.
++bool hirch_nullpunkt_seite(SPDocument const *doc, Geom::Point const &doc_px, Geom::Point &aus_doc_px);
++
+ #endif // SEEN_SP_DOCUMENT_H
+ 
+ /*
+diff --git a/src/live_effects/parameter/point.cpp b/src/live_effects/parameter/point.cpp
+index 76d81f0..2c7ff19 100644
+--- a/src/live_effects/parameter/point.cpp
++++ b/src/live_effects/parameter/point.cpp
+@@ -22,6 +22,8 @@
+ #include "ui/knot/knot-holder.h"
+ #include "ui/pack.h"
+ #include "ui/widget/point.h"
++#include "ui/dialog/hirch-fraesen.h"
++#include "object/sp-lpe-item.h"
+ 
+ namespace Inkscape::LivePathEffect {
+ 
+@@ -157,6 +159,13 @@ PointParam::param_newWidget()
+                                                                                      param_effect->getRepr(),
+                                                                                      param_effect->getSPDoc() );
+     Geom::Affine transf = SP_ACTIVE_DESKTOP->doc2dt();
++    // Hirch CNC: in einer Fräszeichnung mm vom Werkstück-Nullpunkt (Y nach oben) statt Inkscape-Koordinaten
++    auto items = param_effect->getCurrrentLPEItems();
++    Geom::Affine zur_anzeige;
++    if (!items.empty() && hirch_punkt_anzeige(SP_ACTIVE_DESKTOP, items.front(), zur_anzeige)) {
++        transf = zur_anzeige.inverse();
++        pointwdg->set_tooltip_text(param_tooltip + "\n" + _("Millimeters from the workpiece zero point (Y upwards)."));
++    }
+     pointwdg->setTransform(transf);
+     pointwdg->setValue( *this );
+     pointwdg->clearProgrammatically();
+diff --git a/src/object/sp-namedview.cpp b/src/object/sp-namedview.cpp
+index 63b34be..ad1901d 100644
+--- a/src/object/sp-namedview.cpp
++++ b/src/object/sp-namedview.cpp
+@@ -16,6 +16,7 @@
+  */
+ 
+ #include "sp-namedview.h"
++#include "ui/dialog/hirch-sprache.h"
+ 
+ #include <cstring>
+ #include <string>
+@@ -379,6 +380,10 @@ void SPNamedView::set(SPAttr key, const gchar* value) {
+         break;
+     case SPAttr::INKSCAPE_DOCUMENT_UNITS:
+         display_units = sp_parse_document_units(value);
++        // Hirch CAM (Peter 08.11.: mm und Zoll): Lineale und Werkzeugleisten zeigen die gewählte Einheit; die Datei
++        // bleibt in mm
++        // (immer, auch bei Dateien mit «px» wie einem geöffneten PDF, Windows 11.11.)
++        display_units = UnitTable::get().getUnit(Inkscape::UI::Dialog::hirch_zoll() ? "in" : "mm");
+         break;
+     case SPAttr::INKSCAPE_CLIP_TO_PAGE_RENDERING:
+         clip_to_page.readOrUnset(value);
+diff --git a/src/object/sp-page.cpp b/src/object/sp-page.cpp
+index 684c78e..1e70e65 100644
+--- a/src/object/sp-page.cpp
++++ b/src/object/sp-page.cpp
+@@ -139,6 +139,10 @@ Geom::Rect SPPage::getDesktopRect() const
+  */
+ Geom::Translate SPPage::getDesktopAffine() const
+ {
++    // Hirch CNC: ab dem Werkstück-Nullpunkt dieser Seite (derselbe Punkt wie X0 Y0 im G-Code)
++    if (Geom::Point n; hirch_nullpunkt_seite(document, getDocumentRect().midpoint(), n)) {
++        return Geom::Translate(n * document->doc2dt());
++    }
+     auto box = getDesktopRect();
+     return Geom::Translate(box.left(), box.top());
+ }
+diff --git a/src/page-manager.cpp b/src/page-manager.cpp
+index a90a070..4ad80e5 100644
+--- a/src/page-manager.cpp
++++ b/src/page-manager.cpp
+@@ -317,7 +317,14 @@ Geom::Rect PageManager::getSelectedPageRect() const
+ 
+ Geom::Affine PageManager::getSelectedPageAffine() const
+ {
+-    return _selected_page ? _selected_page->getDesktopAffine() : Geom::identity();
++    if (_selected_page) return _selected_page->getDesktopAffine();
++    // Hirch CNC: ohne Seiten-Element (eine Seite) gilt der Nullpunkt der Dokumentseite
++    if (auto b = _document->preferredBounds()) {
++        if (Geom::Point n; hirch_nullpunkt_seite(_document, b->midpoint(), n)) {
++            return Geom::Translate(n * _document->doc2dt());
++        }
++    }
++    return Geom::identity();
+ }
+ 
+ /**
+diff --git a/src/page-manager.h b/src/page-manager.h
+index 38fabaf..54cb51d 100644
+--- a/src/page-manager.h
++++ b/src/page-manager.h
+@@ -107,6 +107,10 @@ public:
+     static void disablePages(SPDocument *document) { document->getPageManager().disablePages(); }
+     static SPPage *newPage(SPDocument *document) { return document->getPageManager().newPage(); }
+ 
++    /// Hirch CNC: der Werkstück-Nullpunkt hat sich geändert (neue Analyse) – alle, die ab der gewählten
++    /// Seite zählen (Werkzeugleisten, Lineale), zeigen neu an
++    void hirchNullpunktGeaendert() { _page_selected_signal.emit(_selected_page); }
++
+     sigc::connection connectPageSelected(const sigc::slot<void (SPPage *)> &slot)
+     {
+         return _page_selected_signal.connect(slot);
+diff --git a/src/selection-chemistry.cpp b/src/selection-chemistry.cpp
+index a28748b..54476f1 100644
+--- a/src/selection-chemistry.cpp
++++ b/src/selection-chemistry.cpp
+@@ -1670,6 +1670,35 @@ void ObjectSet::applyAffine(Geom::Affine const &affine, bool set_i2d, bool compe
+ 
+     _last_affine = affine;
+ 
++    // Hirch CNC (Peter, 23.10.): absoluter Drehwinkel je Objekt, gemerkt in «hirch:drehung» (Grad, positiv =
++    // gegen den Uhrzeiger auf dem Bildschirm). Pfade speichern keine Drehung – darum hier mitzählen, bei
++    // jeder Drehung und Spiegelung der Auswahl. Reine Verschiebung/Skalierung ändert nichts.
++    {
++        double const det = affine.det();
++        double const orth = std::abs(affine[0] * affine[2] + affine[1] * affine[3]);
++        // Winkel in Desktop-Koordinaten; auf dem Bildschirm gegen den Uhrzeiger positiv, wenn y nach oben zählt
++        double const ydir = desktop() ? desktop()->yaxisdir() : 1.0;
++        double const phi = std::atan2(affine[1], affine[0]) * 180.0 / M_PI * -ydir;   // Bildschirm, CCW positiv
++        if (std::abs(det) > 1e-12 && orth < 1e-6 * std::max(1.0, std::abs(det)) && (std::abs(phi) > 1e-6 || det < 0)) {
++            for (auto it : items()) {
++                if (!it || !it->getRepr()) continue;
++                double alt = 0;
++                if (auto a = it->getRepr()->attribute("hirch:drehung")) alt = g_ascii_strtod(a, nullptr);
++                double neu = det > 0 ? alt + phi : phi - alt;                   // Spiegeln kehrt den Sinn um
++                neu = std::fmod(neu, 360.0);
++                if (neu <= -180.0) neu += 360.0;
++                if (neu > 180.0) neu -= 360.0;
++                if (std::abs(neu) < 1e-6) {
++                    it->removeAttribute("hirch:drehung");
++                } else {
++                    char buf[32];
++                    g_ascii_formatd(buf, sizeof(buf), "%.4f", neu);
++                    it->setAttribute("hirch:drehung", buf);
++                }
++            }
++        }
++    }
++
+     // For each perspective with a box in selection, check whether all boxes are selected and
+     // unlink all non-selected boxes.
+     Persp3D *persp;
+diff --git a/src/selection.h b/src/selection.h
+index 0462327..63896c4 100644
+--- a/src/selection.h
++++ b/src/selection.h
+@@ -170,8 +170,8 @@ public:
+     void setAnchor(double x, double y, bool set = true);
+     // Allow the selection to specify a facus anchor (helps with transforming against this point)
+     bool has_anchor = false;
+-    double anchor_x;
+-    double anchor_y;
++    double anchor_x = 0.5;   // Hirch CNC: ohne gewählten Punkt die Mitte
++    double anchor_y = 0.5;
+ 
+     /**
+      * Scale the selection, anchoring it against the center, or a selected anchor
+diff --git a/src/seltrans.cpp b/src/seltrans.cpp
+index 8559ada..2fc3f09 100644
+--- a/src/seltrans.cpp
++++ b/src/seltrans.cpp
+@@ -667,6 +667,29 @@ void Inkscape::SelTrans::stamp(bool clone)
+     }
+ }
+ 
++void Inkscape::SelTrans::hirchBezugSetzen(int spalte, int zeile)
++{
++    for (auto &k : knots) k->selectKnot(false);
++    if (spalte >= 0) {
++        double const y_dir = _desktop->yaxisdir();
++        double const zx = spalte / 2.0;
++        double const zy = y_dir > 0 ? zeile / 2.0 : 1.0 - zeile / 2.0;
++        if (spalte == 1 && zeile == 1) {
++            knots[0]->selectKnot(true);            // Mitte: der Drehpunkt-Anfasser
++        } else {
++            for (int i = 1; i < NUMHANDS; i++) {
++                if (hands[i].type != HANDLE_SCALE && hands[i].type != HANDLE_STRETCH) continue;
++                double bx = hands[i].x, by = (hands[i].y - 0.5) * (-y_dir) + 0.5;
++                if (std::fabs(bx - zx) < 1e-6 && std::fabs(by - zy) < 1e-6) {
++                    knots[i]->selectKnot(true);
++                    break;
++                }
++            }
++        }
++    }
++    _updateHandles();
++}
++
+ void Inkscape::SelTrans::_updateHandles()
+ {
+     for (auto & knot : knots)
+@@ -711,8 +734,10 @@ void Inkscape::SelTrans::_updateHandles()
+             _desktop->getSelection()->setAnchor(anchor_x, anchor_y);
+         }
+     }
++    // Hirch CNC (Peter, 23.10.): ohne gewählten Punkt gilt die Mitte (X/Y, Breite/Höhe, Drehen) – nicht
++    // die Ecke unten links
+     if (!set)
+-        _desktop->getSelection()->setAnchor(0.0, 0.0, false);
++        _desktop->getSelection()->setAnchor(0.5, 0.5, false);
+ }
+ 
+ void Inkscape::SelTrans::_updateVolatileState()
+diff --git a/src/seltrans.h b/src/seltrans.h
+index 6469543..7b05bba 100644
+--- a/src/seltrans.h
++++ b/src/seltrans.h
+@@ -54,6 +54,9 @@ public:
+ 
+     void increaseState();
+     void resetState();
++    /// Hirch CNC: Bezugspunkt wie ein angeklickter Anfasser setzen. spalte/zeile 0..2 auf dem
++    /// Bildschirm (Zeile 0 = oben); spalte < 0: Bezugspunkt aufheben.
++    void hirchBezugSetzen(int spalte, int zeile);
+     void setCenter(Geom::Point const &p);
+     void grab(Geom::Point const &p, double x, double y, bool show_handles, bool translating);
+     void transform(Geom::Affine const &rel_affine, Geom::Point const &norm);

@@ -1,0 +1,48 @@
+{
+  "name": "Centroid Acorn / CNC12 (mm, .nc)",
+  "beschreibung": "Centroid Acorn, AcornSix und Oak mit der Software CNC12. Bohrzyklen G81/G82/G83, Bögen G2/G3. Werkzeugwechsel mit T…M6 (Handwechsel mit Halt, auf Wunsch Werkzeuglänge messen). Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "bohrzyklus": {
+    "entspanen": [
+      "G98 G83 X{x} Y{y} Z{z} R{r} Q{q} F{f}"
+    ],
+    "einfach": [
+      "G98 G81 X{x} Y{y} Z{z} R{r} F{f}"
+    ],
+    "verweilen": [
+      "G98 G82 X{x} Y{y} Z{z} R{r} P{p} F{f}"
+    ],
+    "ende": [
+      "G80"
+    ]
+  },
+  "kopf": [
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G94 G17 G40 G49 G80"
+  ],
+  "werkzeug": [
+    "T{t} M6 ({werkzeug})",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{sicher}"
+  ],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

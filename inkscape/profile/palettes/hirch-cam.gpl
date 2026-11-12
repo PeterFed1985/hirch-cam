@@ -1,0 +1,12 @@
+GIMP Palette
+Name: Hirch CNC Fräsfarben
+Columns: 7
+#
+# Die Farbe einer Linie bestimmt, wie sie gefräst wird.
+224   0   0	V-Carve
+255 140   0	Gravur
+  0 160   0	Tasche
+  0  80 255	Kontur
+128   0 192	Bohren
+  0 170 190	Gewinde
+128 128 128	Nicht fräsen

@@ -1,0 +1,9 @@
+# Texte, die in der englischen Oberfläche deutsch bleiben dürfen (reguläre Ausdrücke, je Zeile).
+# Gedacht für Daten des Benutzers (z. B. eigene Werkzeugnamen) – derzeit keine.
+# Wörter, die deutsch und englisch gleich sind (Windows 08.11.)
+^\s*Helix\s*$
+^\s*Parallel\s*$
+^\s*Details [›‹]\s*$
+^\s*Name\s*$
+# Name der ersten Maschine (Daten des Benutzers; neue englische Profile heissen «My machine»)
+^Meine Maschine$

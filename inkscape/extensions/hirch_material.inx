@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <name>Material einrichten</name>
+  <id>net.hirch.cnc.material</id>
+  <param name="breite" type="float" min="1" max="5000" precision="2" gui-text="Breite X (mm):">300.00</param>
+  <param name="hoehe" type="float" min="1" max="5000" precision="2" gui-text="Höhe Y (mm):">200.00</param>
+  <param name="dicke" type="float" min="0.5" max="300" precision="2" gui-text="Dicke Z (mm):">18.00</param>
+  <param name="verschieben" type="bool" gui-text="Zeichnung mitverschieben (bleibt in der Mitte)">true</param>
+  <label>Die Seite wird zum Material. Nullpunkt: linke untere Ecke, Z0: Oberfläche. Die Dicke wird in der Zeichnung gespeichert und von «Fräsen» verwendet. Mit «Vorschau» die Werte prüfen, bevor sie gelten.</label>
+  <effect needs-live-preview="true">
+    <object-type>all</object-type>
+    <effects-menu>
+      <submenu name="Hirch CNC"/>
+    </effects-menu>
+  </effect>
+  <script>
+    <command location="inx" interpreter="python">hirch_material.py</command>
+  </script>
+</inkscape-extension>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+  <name>Einlinienschrift</name>
+  <id>net.hirch.cnc.einlinien</id>
+
+  <param name="reiter" type="notebook">
+    <page name="text" gui-text="Text">
+      <param name="text" type="string" appearance="multiline" gui-text="Text:">Hirch CNC</param>
+      <param name="schrift" type="optiongroup" appearance="combo" gui-text="Schrift:">
+        <option value="Hershey Sans">Hershey Sans</option>
+        <option value="Hershey Serif">Hershey Serif</option>
+        <option value="Hershey Script">Hershey Script</option>
+        <option value="EMS Readability">EMS Readability</option>
+        <option value="EMS Tech">EMS Tech</option>
+        <option value="EMS Allure">EMS Allure</option>
+      </param>
+      <param name="versalhoehe" type="float" min="1" max="500" precision="2" gui-text="Höhe der Grossbuchstaben (mm):">20.00</param>
+      <param name="ausrichtung" type="optiongroup" appearance="combo" gui-text="Ausrichtung:">
+        <option value="mitte">Mitte</option>
+        <option value="links">Links</option>
+        <option value="rechts">Rechts</option>
+      </param>
+      <param name="zeilenabstand" type="float" min="1" max="5" precision="2" gui-text="Zeilenabstand (× Höhe):">1.70</param>
+      <param name="linien" type="optiongroup" appearance="combo" gui-text="Linien je Strich:">
+        <option value="1">1 Linie</option>
+        <option value="2">2 Linien</option>
+        <option value="3">3 Linien</option>
+      </param>
+      <param name="linienabstand" type="float" min="0.1" max="10" precision="2" gui-text="Abstand der Linien (mm):">0.80</param>
+    </page>
+    <page name="abstand" gui-text="Buchstabenabstand">
+      <param name="optisch" type="optiongroup" appearance="combo" gui-text="Abstand:">
+        <option value="optisch">Optisch, mit Fräserbreite</option>
+        <option value="fest">Feste Zeichenbreiten</option>
+      </param>
+      <param name="luft" type="int" min="5" max="60" gui-text="Luft zwischen Buchstaben (% der Höhe):">22</param>
+      <label appearance="header">Fräser (für die Breite der Rille)</label>
+      <param name="fraeser" type="optiongroup" appearance="combo" gui-text="Fräser:">
+        <option value="v">V-Fräser</option>
+        <option value="schaft">Schaftfräser</option>
+      </param>
+      <param name="winkel" type="float" min="10" max="150" precision="0" gui-text="Winkel V-Fräser (°):">60</param>
+      <param name="tiefe" type="float" min="0.05" max="20" precision="2" gui-text="Frästiefe V-Fräser (mm):">0.50</param>
+      <param name="durchmesser" type="float" min="0.1" max="20" precision="2" gui-text="Durchmesser Schaftfräser (mm):">1.00</param>
+      <label>Die Strichbreite in der Zeichnung zeigt die Breite der gefrästen Rille. Gefräst wird mit den Werten im Dialog «Fräsen» (Gravur, Orange).</label>
+    </page>
+  </param>
+
+  <effect needs-live-preview="true">
+    <object-type>all</object-type>
+    <effects-menu>
+      <submenu name="Hirch CNC"/>
+    </effects-menu>
+  </effect>
+  <script>
+    <command location="inx" interpreter="python">hirch_einlinien.py</command>
+  </script>
+</inkscape-extension>

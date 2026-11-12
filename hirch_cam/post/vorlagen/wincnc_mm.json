@@ -1,0 +1,36 @@
+{
+  "name": "WinCNC (mm, .tap)",
+  "beschreibung": "Steuerung WinCNC. Kommentare stehen in [ ]. Bei T… ruft WinCNC sein Werkzeugwechsel-Makro auf (Hand- oder Wechsler). G22 = Millimeter (WinCNC: G20 Zoll, G21 Zentimeter, G22 Millimeter). Zum Schluss fährt Z ganz hoch (G53 Z0 = Maschinen-Null).",
+  "an_maschine_geprueft": false,
+  "endung": ".tap",
+  "werkzeugwechsel": true,
+  "wechselposition": true,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "[{text}]",
+  "zeilennummern": 0,
+  "kopf": [
+    "[{datei} - Hirch CAM {datum}]",
+    "G90",
+    "G22 [Millimeter]"
+  ],
+  "werkzeug": [
+    "T{t} [{werkzeug}]",
+    "S{s}",
+    "M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{wz}",
+    "G0 X{wx} Y{wy}"
+  ],
+  "ende": [
+    "M5",
+    "G53 Z0",
+    "G0 X{hx} Y{hy}"
+  ]
+}

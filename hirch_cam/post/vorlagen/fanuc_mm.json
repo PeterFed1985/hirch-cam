@@ -1,0 +1,53 @@
+{
+  "name": "Fanuc / Haas / Syntec (mm, .nc)",
+  "beschreibung": "Allgemeine Industriesteuerung nach Fanuc-Art (auch Haas, Syntec und viele andere): Programmnummer O0001, Prozentzeichen am Anfang und Ende, Zeilennummern, Bohrzyklen G81/G82/G83, T…M6 mit G43-Längenkorrektur. Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 10,
+  "bohrzyklus": {
+    "entspanen": [
+      "G98 G83 X{x} Y{y} Z{z} R{r} Q{q} F{f}"
+    ],
+    "einfach": [
+      "G98 G81 X{x} Y{y} Z{z} R{r} F{f}"
+    ],
+    "verweilen": [
+      "G98 G82 X{x} Y{y} Z{z} R{r} P{p} F{f}"
+    ],
+    "ende": [
+      "G80"
+    ]
+  },
+  "kopf": [
+    "%",
+    "O0001 ({datei})",
+    "G21 G90 G94 G17 G40 G49 G80"
+  ],
+  "werkzeug": [
+    "T{t} M6 ({werkzeug})",
+    "G43 H{t}",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G91 G28 Z0",
+    "G90"
+  ],
+  "ende": [
+    "M5",
+    "G91 G28 Z0",
+    "G90",
+    "G0 X{hx} Y{hy}",
+    "M30",
+    "%"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "name": "Mach3 / Mach4 (mm, .tap)",
+  "beschreibung": "Mach3 und Mach4 (Newfangled Solutions), verbreitet bei Hobby- und China-Fräsen mit Parallelport oder Ethernet-Karte. Bohrzyklen G81/G82/G83, Bögen G2/G3. Werkzeugwechsel mit T…M6: Mach fährt (je nach Einstellung) zur Wechselstelle und wartet auf «Cycle Start»; danach Z neu antasten. Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".tap",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "bohrzyklus": {
+    "entspanen": [
+      "G98 G83 X{x} Y{y} Z{z} R{r} Q{q} F{f}"
+    ],
+    "einfach": [
+      "G98 G81 X{x} Y{y} Z{z} R{r} F{f}"
+    ],
+    "verweilen": [
+      "G98 G82 X{x} Y{y} Z{z} R{r} P{p} F{f}"
+    ],
+    "ende": [
+      "G80"
+    ]
+  },
+  "kopf": [
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G94 G17 G40 G49 G80"
+  ],
+  "werkzeug": [
+    "T{t} M6 ({werkzeug})",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{sicher}"
+  ],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

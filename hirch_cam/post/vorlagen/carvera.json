@@ -1,0 +1,34 @@
+{
+  "name": "Makera Carvera (mm, .nc)",
+  "beschreibung": "Makera Carvera und Carvera Air (Desktop-Fräse mit automatischem Werkzeugwechsel). Werkzeugwechsel mit M6 T… – die Carvera holt das Werkzeug aus ihrem Magazin und misst es selbst; die Werkzeugnummern müssen den Plätzen im Magazin entsprechen (T1…T6). Bögen G2/G3, Bohrungen als Bewegungen. Nach den Handbüchern der Steuerung zusammengestellt, an keiner echten Maschine geprüft – vor dem ersten Einsatz Luftfräsen.",
+  "an_maschine_geprueft": false,
+  "endung": ".nc",
+  "werkzeugwechsel": true,
+  "wechselposition": false,
+  "wechsel_x": 0.0,
+  "wechsel_y": 0.0,
+  "wechsel_z": null,
+  "leerzeichen": true,
+  "boegen": true,
+  "kommentar": "({text})",
+  "zeilennummern": 0,
+  "kopf": [
+    "({datei} - Hirch CAM {datum})",
+    "G21 G90 G94 G17"
+  ],
+  "werkzeug": [
+    "M6 T{t} ({werkzeug})",
+    "S{s} M3",
+    "G0 Z{sicher}"
+  ],
+  "wechsel": [
+    "M5",
+    "G0 Z{sicher}"
+  ],
+  "ende": [
+    "M5",
+    "G0 Z{sicher}",
+    "G0 X{hx} Y{hy}",
+    "M30"
+  ]
+}

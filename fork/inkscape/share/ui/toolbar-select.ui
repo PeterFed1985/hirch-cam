@@ -1,0 +1,752 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.40.0 -->
+<interface>
+  <requires lib="gtk+" version="3.22"/>
+  <object class="GtkAdjustment" id="_h_adj">
+    <property name="lower">-1000000</property>
+    <property name="upper">1000000</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="_w_adj">
+    <property name="lower">-1000000</property>
+    <property name="upper">1000000</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="_x_adj">
+    <property name="lower">-1000000</property>
+    <property name="upper">1000000</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="_y_adj">
+    <property name="lower">-1000000</property>
+    <property name="upper">1000000</property>
+    <property name="step-increment">0.10</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkPopover" id="popover1">
+    <property name="modal">True</property>
+    <child>
+      <object class="GtkBox" id="popover_box1">
+        <property name="visible">True</property>
+        <property name="valign">center</property>
+        <property name="spacing">3</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="popover2">
+    <property name="modal">True</property>
+    <child>
+      <object class="GtkBox" id="popover_box2">
+        <property name="visible">True</property>
+        <property name="valign">center</property>
+        <property name="spacing">3</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="popover3">
+    <property name="modal">True</property>
+    <child>
+      <object class="GtkBox" id="popover_box3">
+        <property name="visible">True</property>
+        <property name="valign">center</property>
+        <property name="spacing">3</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkPopover" id="popover4">
+    <property name="modal">True</property>
+    <child>
+      <object class="GtkBox" id="popover_box4">
+        <property name="visible">True</property>
+        <property name="valign">center</property>
+        <property name="spacing">3</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkBox" id="select-toolbar">
+    <property name="visible">True</property>
+    <property name="halign">start</property>
+    <property name="valign">center</property>
+    <property name="spacing">3</property>
+    <property name="hexpand">True</property>
+    <child>
+      <object class="GtkMenuButton" id="menu_btn1">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="receives-default">True</property>
+        <property name="popover">popover1</property>
+        <child>
+	  <object class="GtkBox">
+	    <property name="visible">True</property>
+	    <property name="spacing">4</property>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">edit-select-all</property>
+              </object>
+	    </child>
+	    <child>
+              <object class="GtkLabel">
+		<property name="visible">True</property>
+		<property name="label" translatable="yes">Selection</property>
+              </object>
+	    </child>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">pan-down</property>
+              </object>
+	    </child>
+	  </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="can-default">True</property>
+        <property name="tooltip-text" translatable="yes">Select all objects</property>
+        <property name="action-name">win.select-all</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="tag1"/>
+        </style>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkImage" id="image1">
+                <property name="visible">True</property>
+                <property name="icon-name">edit-select-all</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Select All</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Select all in all layers</property>
+        <property name="action-name">win.select-all-layers</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="tag1"/>
+        </style>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkImage" id="image2">
+                <property name="visible">True</property>
+                <property name="icon-name">edit-select-all-layers</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Select All in All Layers</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="deselect_btn">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Deselect any selected objects</property>
+        <property name="action-name">win.select-none</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag1"/>
+        </style>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkImage" id="image3">
+                <property name="visible">True</property>
+                <property name="icon-name">edit-select-none</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Deselect</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkToggleButton" id="_select_touch_btn">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Toggle selection box to select all touched objects</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="tag1"/>
+        </style>
+        <child>
+          <object class="GtkBox">
+            <property name="visible">True</property>
+            <property name="spacing">8</property>
+            <child>
+              <object class="GtkImage" id="image4">
+                <property name="visible">True</property>
+                <property name="icon-name">selection-touch</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Select with touch-path</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparator">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuButton" id="menu_btn2">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="receives-default">True</property>
+        <property name="popover">popover2</property>
+        <child>
+	  <object class="GtkBox">
+	    <property name="visible">True</property>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">hirch-drehen-links</property>
+              </object>
+	    </child>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">pan-down</property>
+              </object>
+	    </child>
+	  </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="rotate_left_btn">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Rotate selection 90° counter-clockwise</property>
+        <property name="action-name">app.transform-rotate</property>
+        <property name="action-target">-90.0</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag2"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image5">
+            <property name="visible">True</property>
+            <property name="icon-name">hirch-drehen-links</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="rotate_right_btn">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Rotate selection 90° clockwise</property>
+        <property name="action-name">app.transform-rotate</property>
+        <property name="action-target">90.0</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag2"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image6">
+            <property name="visible">True</property>
+            <property name="icon-name">hirch-drehen-rechts</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="flip_horizontal_btn">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Flip selected objects horizontally</property>
+        <property name="action-name">app.object-flip-horizontal</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag2"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image7">
+            <property name="visible">True</property>
+            <property name="icon-name">object-flip-horizontal</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="flip_vertical_btn">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Flip selected objects vertically</property>
+        <property name="action-name">app.object-flip-vertical</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag2"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image8">
+            <property name="visible">True</property>
+            <property name="icon-name">object-flip-vertical</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparator">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuButton" id="menu_btn3">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="receives-default">True</property>
+        <property name="popover">popover3</property>
+        <child>
+	  <object class="GtkBox">
+	    <property name="visible">True</property>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">align-horizontal-center</property>
+              </object>
+	    </child>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">pan-down</property>
+              </object>
+	    </child>
+	  </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="hirch_links">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text">Links ausrichten – am zuletzt ausgewählten Objekt, ein einzelnes am Material (Strg+Alt+4)</property>
+        <property name="action-name">app.object-align</property>
+        <property name="action-target">'left hirch'</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag3"/>
+        </style>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">align-horizontal-left</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="hirch_hmitte">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text">Waagrecht zentrieren – am zuletzt ausgewählten Objekt, ein einzelnes am Material (Strg+Alt+7)</property>
+        <property name="action-name">app.object-align</property>
+        <property name="action-target">'hcenter hirch'</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag3"/>
+        </style>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">align-horizontal-center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="hirch_rechts">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text">Rechts ausrichten – am zuletzt ausgewählten Objekt, ein einzelnes am Material (Strg+Alt+6)</property>
+        <property name="action-name">app.object-align</property>
+        <property name="action-target">'right hirch'</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag3"/>
+        </style>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">align-horizontal-right</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="hirch_oben">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text">Oben ausrichten – am zuletzt ausgewählten Objekt, ein einzelnes am Material (Strg+Alt+8)</property>
+        <property name="action-name">app.object-align</property>
+        <property name="action-target">'top hirch'</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag3"/>
+        </style>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">align-vertical-top</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="hirch_vmitte">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text">Senkrecht zentrieren – am zuletzt ausgewählten Objekt, ein einzelnes am Material (Strg+Alt+1)</property>
+        <property name="action-name">app.object-align</property>
+        <property name="action-target">'vcenter hirch'</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag3"/>
+        </style>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">align-vertical-center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="hirch_unten">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text">Unten ausrichten – am zuletzt ausgewählten Objekt, ein einzelnes am Material (Strg+Alt+2)</property>
+        <property name="action-name">app.object-align</property>
+        <property name="action-target">'bottom hirch'</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag3"/>
+        </style>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">align-vertical-bottom</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkButton" id="hirch_material">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text">Auf dem Material zentrieren (auch mehrere Objekte als Ganzes)</property>
+        <property name="action-name">app.object-align</property>
+        <property name="action-target">'hcenter vcenter page group'</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="context_item"/>
+          <class name="tag3"/>
+        </style>
+        <child>
+          <object class="GtkImage">
+            <property name="visible">True</property>
+            <property name="icon-name">zoom-center-page</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparator">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="hirch_bezug_box">
+        <property name="visible">True</property>
+        <property name="valign">center</property>
+        <property name="margin-start">4</property>
+        <property name="margin-end">4</property>
+        <style>
+          <class name="context_item"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="x_box">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">X:</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSpinButton" id="_x_item">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Horizontal coordinate of selection</property>
+            <property name="width-chars">10</property>
+            <property name="adjustment">_x_adj</property>
+            <property name="climb-rate">1.0</property>
+            <property name="digits">3</property>
+          </object>
+        </child>
+        <style>
+          <class name="context_item"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="y_box">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Y:</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSpinButton" id="_y_item">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Vertical coordinate of selection</property>
+            <property name="width-chars">10</property>
+            <property name="text">0.000</property>
+            <property name="adjustment">_y_adj</property>
+            <property name="climb-rate">1.0</property>
+            <property name="digits">3</property>
+          </object>
+        </child>
+        <style>
+          <class name="context_item"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="w_box">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">W:</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSpinButton" id="_w_item">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Width of selection</property>
+            <property name="width-chars">10</property>
+            <property name="text">0.000</property>
+            <property name="adjustment">_w_adj</property>
+            <property name="climb-rate">1.0</property>
+            <property name="digits">3</property>
+          </object>
+        </child>
+        <style>
+          <class name="context_item"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkToggleButton" id="_lock_btn">
+        <property name="visible">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">When locked, change width and height by the same proportion</property>
+        <property name="relief">none</property>
+        <child>
+          <object class="GtkImage" id="image17">
+            <property name="visible">True</property>
+            <property name="icon-name">object-unlocked</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="h_box">
+        <property name="visible">True</property>
+        <child>
+          <object class="GtkLabel">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes" context="Abbreviation of Height">H:</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkSpinButton" id="_h_item">
+            <property name="visible">True</property>
+            <property name="can-focus">True</property>
+            <property name="tooltip-text" translatable="yes">Height of selection</property>
+            <property name="width-chars">10</property>
+            <property name="text">0.000</property>
+            <property name="adjustment">_h_adj</property>
+            <property name="climb-rate">1.0</property>
+            <property name="digits">3</property>
+          </object>
+        </child>
+        <style>
+          <class name="context_item"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="unit_menu_box">
+        <property name="visible">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparator">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkMenuButton" id="menu_btn4">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="receives-default">True</property>
+        <property name="popover">popover4</property>
+        <child>
+	  <object class="GtkBox">
+	    <property name="visible">True</property>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">transform-affect-stroke</property>
+              </object>
+	    </child>
+	    <child>
+              <object class="GtkImage">
+		<property name="visible">True</property>
+		<property name="icon-name">pan-down</property>
+              </object>
+	    </child>
+	  </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkToggleButton" id="_transform_stroke_btn">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">When scaling objects, scale the stroke width by the same proportion</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="tag4"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image13">
+            <property name="visible">True</property>
+            <property name="icon-name">transform-affect-stroke</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkToggleButton" id="_transform_corners_btn">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">When scaling rectangles, scale the radii of rounded corners</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="tag4"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image14">
+            <property name="visible">True</property>
+            <property name="icon-name">transform-affect-rounded-corners</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkToggleButton" id="_transform_gradient_btn">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Move gradients (in fill or stroke) along with the objects</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="tag4"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image15">
+            <property name="visible">True</property>
+            <property name="icon-name">transform-affect-gradient</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="GtkToggleButton" id="_transform_pattern_btn">
+        <property name="visible">False</property>
+        <property name="no-show-all">True</property>
+        <property name="focus-on-click">False</property>
+        <property name="tooltip-text" translatable="yes">Move patterns (in fill or stroke) along with the objects</property>
+        <property name="relief">none</property>
+        <style>
+          <class name="tag4"/>
+        </style>
+        <child>
+          <object class="GtkImage" id="image16">
+            <property name="visible">True</property>
+            <property name="icon-name">transform-affect-pattern</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <style>
+      <class name="inkscape-toolbar"/>
+    </style>
+  </object>
+</interface>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:hirch="https://hirch.net/cnc" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="120mm" height="80mm" viewBox="0 0 120 80" hirch:materialdicke="12" hirch:einstellungen="{&quot;eingerichtet&quot;: true, &quot;zweiseitig&quot;: {&quot;an&quot;: true, &quot;achse&quot;: &quot;x&quot;, &quot;passloecher&quot;: true}, &quot;bearbeitungen&quot;: [{&quot;id&quot;: &quot;t1&quot;, &quot;art&quot;: &quot;tasche&quot;, &quot;tiefe&quot;: 2, &quot;zustellung&quot;: 1, &quot;farbe&quot;: &quot;#00a000&quot;}, {&quot;id&quot;: &quot;t2&quot;, &quot;art&quot;: &quot;tasche&quot;, &quot;tiefe&quot;: 3, &quot;zustellung&quot;: 1.5, &quot;farbe&quot;: &quot;#00c000&quot;, &quot;auf_seite&quot;: 2}, {&quot;id&quot;: &quot;k1&quot;, &quot;art&quot;: &quot;kontur&quot;, &quot;tiefe&quot;: null, &quot;zustellung&quot;: 3, &quot;farbe&quot;: &quot;#0050ff&quot;, &quot;stege_anzahl&quot;: 2}]}">
+<sodipodi:namedview id="nv"><inkscape:page id="p1" x="0" y="0" width="120" height="80"/><inkscape:page id="p2" x="140" y="0" width="120" height="80"/></sodipodi:namedview>
+<g inkscape:groupmode="layer" inkscape:label="Ebene 1">
+<rect id="a" x="20" y="20" width="30" height="20" style="fill:none;stroke:#00a000"/>
+<circle id="b" cx="225" cy="40" r="10" style="fill:none;stroke:#00c000"/>
+<rect id="k" x="10" y="10" width="100" height="60" style="fill:none;stroke:#0050ff"/>
+</g></svg>
